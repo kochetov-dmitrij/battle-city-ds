@@ -5,24 +5,22 @@ import (
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
-	"image"
 	_ "image/gif"
 	"math/rand"
-	"os"
 	"path/filepath"
 	"time"
 )
 
 type game struct {
-	spritesSheet pixel.Picture
-	titleSize    int
-	window       *pixelgl.Window
-	canvas       *pixelgl.Canvas
-	imd          *imdraw.IMDraw
+	sprites   *sprites
+	titleSize int
+	window    *pixelgl.Window
+	canvas    *pixelgl.Canvas
+	imd       *imdraw.IMDraw
 }
 
 func NewGame(assetsPath string) (g *game) {
-	spritesSheet := loadSprites(filepath.Join(assetsPath, "sprites"))
+	sprites := loadSprites(filepath.Join(assetsPath, "sprites"))
 
 	windowBounds := pixel.Rect{Max: pixel.Vec{X: 480, Y: 416}}
 	cfg := pixelgl.WindowConfig{
@@ -39,26 +37,12 @@ func NewGame(assetsPath string) (g *game) {
 	canvas.SetMatrix(pixel.IM.Scaled(pixel.ZV, 2))
 
 	g = &game{
-		spritesSheet: spritesSheet,
-		titleSize:    16,
-		window:       window,
-		canvas:       canvas,
-		//imd:          imd,
+		sprites:   sprites,
+		titleSize: 16,
+		window:    window,
+		canvas:    canvas,
 	}
 	return g
-}
-
-func loadSprites(spritesPath string) pixel.Picture {
-	spritesFile, err := os.Open(filepath.Join(spritesPath, "sprites.gif"))
-	if err != nil {
-		panic(err)
-	}
-	defer spritesFile.Close()
-	spritesImg, _, err := image.Decode(spritesFile)
-	if err != nil {
-		panic(err)
-	}
-	return pixel.PictureDataFromImage(spritesImg)
 }
 
 func (g *game) Run() {
@@ -83,9 +67,7 @@ func (g *game) Run() {
 		g.window.Clear(colornames.White)
 		g.canvas.Clear(colornames.Black)
 
-		spriteFrame := pixel.R(32, 96-15, 32+15, 96)
-		sprite := pixel.NewSprite(g.spritesSheet, spriteFrame)
-		sprite.Draw(g.canvas, pixel.IM.Moved(spriteFrame.Size().Scaled(0.5)))
+		g.sprites.player.Draw(g.canvas, pixel.IM.Moved(g.sprites.player.Frame().Size().Scaled(0.5)))
 
 		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
 		g.window.Update()
