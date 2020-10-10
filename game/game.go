@@ -26,7 +26,6 @@ func NewGame(assetsPath string) (g *game) {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Battle City",
 		Bounds: windowBounds,
-		VSync:  true,
 	}
 	window, err := pixelgl.NewWindow(cfg)
 	if err != nil {
@@ -47,12 +46,9 @@ func NewGame(assetsPath string) (g *game) {
 
 func (g *game) Run() {
 	rand.Seed(time.Now().UnixNano())
-	last := time.Now()
+	fps := 60
+	fpsSync := time.Tick(time.Second / time.Duration(fps))
 	for !g.window.Closed() {
-		dt := time.Since(last).Seconds()
-		last = time.Now()
-		_ = dt
-
 		ctrl := pixel.ZV
 		if g.window.Pressed(pixelgl.KeyLeft) {
 			ctrl.X--
@@ -67,9 +63,10 @@ func (g *game) Run() {
 		g.window.Clear(colornames.White)
 		g.canvas.Clear(colornames.Black)
 
-		g.sprites.player.Draw(g.canvas, pixel.IM.Moved(g.sprites.player.Frame().Size().Scaled(0.5)))
+		g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
 
 		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
 		g.window.Update()
+		<-fpsSync
 	}
 }
