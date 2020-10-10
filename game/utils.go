@@ -9,10 +9,13 @@ import (
 )
 
 type sprites struct {
-	player, flag          *pixel.Sprite
+	flag, bullet 		  *pixel.Sprite
 	playerLife, enemyLife *pixel.Sprite
 	enemies               []*pixel.Sprite
+	players               []*pixel.Sprite
 	arrows                []*pixel.Sprite
+	explosions			  []*pixel.Sprite
+	tiles				  []*pixel.Sprite
 }
 
 func loadSprites(spritesPath string) *sprites {
@@ -27,19 +30,30 @@ func loadSprites(spritesPath string) *sprites {
 	}
 	spriteSheet := pixel.PictureDataFromImage(spritesImg)
 	return &sprites{
-		player:     pixel.NewSprite(spriteSheet, pixel.R(0, 99, 13, 112)),
 		flag:       pixel.NewSprite(spriteSheet, pixel.R(64, 48, 80, 63)),
+		bullet:		pixel.NewSprite(spriteSheet, pixel.R(75, 34, 78, 38)),
 		playerLife: pixel.NewSprite(spriteSheet, pixel.R(89, 48, 96, 56)),
 		enemyLife:  pixel.NewSprite(spriteSheet, pixel.R(81, 48, 88, 55)),
-		enemies: []*pixel.Sprite{
-			pixel.NewSprite(spriteSheet, pixel.R(32, 97, 45, 112)),
-			pixel.NewSprite(spriteSheet, pixel.R(48, 97, 61, 112)),
-			pixel.NewSprite(spriteSheet, pixel.R(64, 97, 77, 112)),
-			pixel.NewSprite(spriteSheet, pixel.R(80, 97, 93, 112)),
+		players: 	[]*pixel.Sprite{
+			pixel.NewSprite(spriteSheet, pixel.R(0, 99, 13, 112)),
+			pixel.NewSprite(spriteSheet, pixel.R(16, 99, 29, 112)),
 		},
-		arrows: []*pixel.Sprite{
+		arrows: 	[]*pixel.Sprite{
 			pixel.NewSprite(spriteSheet, pixel.R(81, 57, 88, 64)),
 			pixel.NewSprite(spriteSheet, pixel.R(88, 57, 95, 64)),
+		},
+		explosions: []*pixel.Sprite{
+			pixel.NewSprite(spriteSheet, pixel.R(0, 0, 32, 32)),
+			pixel.NewSprite(spriteSheet, pixel.R(32, 0, 64, 32)),	
+			pixel.NewSprite(spriteSheet, pixel.R(64, 0, 96, 32)),	
+		},
+		tiles:		[]*pixel.Sprite{
+			pixel.NewSprite(spriteSheet, pixel.R(48, 40, 56, 48)),
+			pixel.NewSprite(spriteSheet, pixel.R(48, 32, 56, 40)),
+			pixel.NewSprite(spriteSheet, pixel.R(56, 32, 64, 40)),
+			pixel.NewSprite(spriteSheet, pixel.R(64, 40, 72, 48)),
+			pixel.NewSprite(spriteSheet, pixel.R(72, 40, 80, 48)),
+			pixel.NewSprite(spriteSheet, pixel.R(64, 32, 72, 40)),
 		},
 	}
 }

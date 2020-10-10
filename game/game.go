@@ -46,17 +46,17 @@ func NewGame(assetsPath string) (g *game) {
 
 func (g *game) Run() {
 	rand.Seed(time.Now().UnixNano())
-	fps := 60
+	fps := 30
 	fpsSync := time.Tick(time.Second / time.Duration(fps))
 	for !g.window.Closed() {
 		ctrl := pixel.ZV
-		if g.window.Pressed(pixelgl.KeyLeft) {
+		if g.window.Pressed(pixelgl.KeyA) {
 			ctrl.X--
 		}
-		if g.window.Pressed(pixelgl.KeyRight) {
+		if g.window.Pressed(pixelgl.KeyD) {
 			ctrl.X++
 		}
-		if g.window.JustPressed(pixelgl.KeyUp) {
+		if g.window.JustPressed(pixelgl.KeyW) {
 			ctrl.Y = 1
 		}
 
