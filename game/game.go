@@ -1,14 +1,14 @@
 package game
 
 import (
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/imdraw"
-	"github.com/faiface/pixel/pixelgl"
-	"golang.org/x/image/colornames"
 	_ "image/gif"
 	"math/rand"
 	"path/filepath"
 	"time"
+
+	"github.com/faiface/pixel"
+	"github.com/faiface/pixel/pixelgl"
+	"golang.org/x/image/colornames"
 )
 
 type game struct {
@@ -16,11 +16,12 @@ type game struct {
 	titleSize int
 	window    *pixelgl.Window
 	canvas    *pixelgl.Canvas
-	imd       *imdraw.IMDraw
+	levels 	  [][26][26]byte
 }
 
 func NewGame(assetsPath string) (g *game) {
 	sprites := loadSprites(filepath.Join(assetsPath, "sprites"))
+	levels := loadLevels(filepath.Join(assetsPath, "levels"))
 
 	windowBounds := pixel.Rect{Max: pixel.Vec{X: 480, Y: 416}}
 	cfg := pixelgl.WindowConfig{
@@ -40,6 +41,7 @@ func NewGame(assetsPath string) (g *game) {
 		titleSize: 16,
 		window:    window,
 		canvas:    canvas,
+		levels:    levels,
 	}
 	return g
 }
