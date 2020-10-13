@@ -16,7 +16,7 @@ type game struct {
 	titleSize int
 	window    *pixelgl.Window
 	canvas    *pixelgl.Canvas
-	levels 	  [][26][26]byte
+	levels    [][26][26]byte
 }
 
 func NewGame(assetsPath string) (g *game) {
@@ -50,20 +50,38 @@ func (g *game) Run() {
 	rand.Seed(time.Now().UnixNano())
 	fps := 30
 	fpsSync := time.Tick(time.Second / time.Duration(fps))
+
+	direction := up
+	moves := false
+	playerTank := loadTank(g.sprites.players[0], false)
+	last := time.Now()
 	for !g.window.Closed() {
-		ctrl := pixel.ZV
+		moves = false
 		if g.window.Pressed(pixelgl.KeyA) {
-			ctrl.X--
+			direction = left
+			moves = true
 		}
 		if g.window.Pressed(pixelgl.KeyD) {
-			ctrl.X++
+			direction = right
+			moves = true
 		}
-		if g.window.JustPressed(pixelgl.KeyW) {
-			ctrl.Y = 1
+		if g.window.Pressed(pixelgl.KeyW) {
+			direction = up
+			moves = true
+		}
+		if g.window.Pressed(pixelgl.KeyS) {
+			direction = down
+			moves = true
 		}
 
 		g.window.Clear(colornames.White)
 		g.canvas.Clear(colornames.Black)
+
+		last := time.Since(last).Milliseconds()
+		if moves {
+			playerTank.update(last, direction)
+		}
+		playerTank.draw(g.canvas)
 
 		g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
 
