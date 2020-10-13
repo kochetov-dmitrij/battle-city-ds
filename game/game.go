@@ -17,6 +17,7 @@ type game struct {
 	window    *pixelgl.Window
 	canvas    *pixelgl.Canvas
 	levels    [][26][26]byte
+	world     *world
 }
 
 func NewGame(assetsPath string) (g *game) {
@@ -42,6 +43,7 @@ func NewGame(assetsPath string) (g *game) {
 		window:    window,
 		canvas:    canvas,
 		levels:    levels,
+		world:     &world{},
 	}
 	return g
 }
@@ -55,6 +57,9 @@ func (g *game) Run() {
 	moves := false
 	playerTank := loadTank(g.sprites.players[0], false)
 	last := time.Now()
+
+	g.world.worldMap = g.levels[0] // TODO change to loading from menu
+	g.world.tanks = append(g.world.tanks, playerTank)
 	for !g.window.Closed() {
 		moves = false
 		if g.window.Pressed(pixelgl.KeyA) {
@@ -73,9 +78,13 @@ func (g *game) Run() {
 			direction = down
 			moves = true
 		}
+		// if g.window.JustPressed(pixelgl.KeySpace) {
+		// 	playerTank.fire()
+		// }
 
 		g.window.Clear(colornames.White)
 		g.canvas.Clear(colornames.Black)
+		g.draw()
 
 		last := time.Since(last).Milliseconds()
 		if moves {
@@ -83,7 +92,14 @@ func (g *game) Run() {
 		}
 		playerTank.draw(g.canvas)
 
-		g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
+		// g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
+
+		// g.sprites.tiles[tileEmpty].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(0.5)))
+		// g.sprites.tiles[tileBrick].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(1)))
+		// g.sprites.tiles[tileSteel].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(2)))
+		// g.sprites.tiles[tileWater].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(3)))
+		// g.sprites.tiles[tileFroze].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(4)))
+		// g.sprites.tiles[tileGrass].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(5)))
 
 		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
 		g.window.Update()

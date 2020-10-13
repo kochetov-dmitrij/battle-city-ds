@@ -18,6 +18,11 @@ const (
 	right
 )
 
+type world struct {
+	tanks    []*tank
+	worldMap [26][26]byte
+}
+
 type tank struct {
 	direction Direction
 	sprite    pixel.Sprite
