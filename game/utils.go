@@ -17,7 +17,7 @@ type sprites struct {
 	players               []*pixel.Sprite
 	arrows                []*pixel.Sprite
 	explosions            []*pixel.Sprite
-	tiles                 []*pixel.Sprite
+	tiles                 map[byte]*pixel.Sprite
 }
 
 func loadSprites(spritesPath string) *sprites {
@@ -49,13 +49,14 @@ func loadSprites(spritesPath string) *sprites {
 			pixel.NewSprite(spriteSheet, pixel.R(32, 0, 64, 32)),
 			pixel.NewSprite(spriteSheet, pixel.R(64, 0, 96, 32)),
 		},
-		tiles: []*pixel.Sprite{
-			pixel.NewSprite(spriteSheet, pixel.R(48, 40, 56, 48)),
-			pixel.NewSprite(spriteSheet, pixel.R(48, 32, 56, 40)),
-			pixel.NewSprite(spriteSheet, pixel.R(56, 32, 64, 40)),
-			pixel.NewSprite(spriteSheet, pixel.R(64, 40, 72, 48)),
-			pixel.NewSprite(spriteSheet, pixel.R(72, 40, 80, 48)),
-			pixel.NewSprite(spriteSheet, pixel.R(64, 32, 72, 40)),
+		tiles: map[byte]*pixel.Sprite{
+			// tileEmpty: pixel.NewSprite(spriteSheet, pixel.R(0, 32, 32, 64)),
+			tileBrick: pixel.NewSprite(spriteSheet, pixel.R(48, 40, 56, 48)),
+			tileSteel: pixel.NewSprite(spriteSheet, pixel.R(48, 32, 56, 40)),
+			tileGrass: pixel.NewSprite(spriteSheet, pixel.R(56, 32, 64, 40)),
+			tileWater: pixel.NewSprite(spriteSheet, pixel.R(64, 40, 72, 48)),
+			'w':       pixel.NewSprite(spriteSheet, pixel.R(72, 40, 80, 48)),
+			tileFroze: pixel.NewSprite(spriteSheet, pixel.R(64, 32, 72, 40)),
 		},
 	}
 }
