@@ -27,23 +27,26 @@ type tank struct {
 	direction Direction
 	sprite    pixel.Sprite
 	x, y      int64
+	size      [2]int64
 }
 
-func loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
+func (g *game) loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
 	if changeColor {
 		// TODO add coloring
 	}
 	t = &tank{
 		direction: up,
 		sprite:    *sprite,
-		x:         rand.Int63n(400),
-		y:         rand.Int63n(350),
+		x:         rand.Int63n(20),
+		y:         rand.Int63n(20),
+		size: [2]int64{int64(sprite.Frame().Max.X-sprite.Frame().Min.X) / 2,
+			int64(sprite.Frame().Max.Y-sprite.Frame().Min.Y) / 2},
 	}
 	return t
 }
 
 func (t *tank) draw(target pixel.Target) {
-	fmt.Println(t.x, t.y)
+	// fmt.Println(t.x, t.y)
 	mat := pixel.IM
 	switch t.direction {
 	case left:
@@ -53,13 +56,34 @@ func (t *tank) draw(target pixel.Target) {
 	case right:
 		mat = mat.Rotated(pixel.ZV, 3*math.Pi/2)
 	}
-	mat = mat.Moved(pixel.V(float64(t.x)/10, float64(t.y)/10))
+	mat = mat.Moved(pixel.V(float64(t.x), float64(t.y)))
 
 	t.sprite.Draw(target, mat)
 }
 
-func (t *tank) getNewPos(time int64, direction Direction) (int64, int64) {
-	movedPixels := int64(20)
+func (t *tank) canMove(direction Direction, movedPixels int64) bool {
+	if direction == right {
+		fmt.Printf("(%d+%d = %d) < %d\n", t.x, movedPixels, t.x+movedPixels, gameH-t.size[0])
+		return t.x+movedPixels < gameH-t.size[0]
+	}
+	if direction == left {
+		return t.x-movedPixels > t.size[0]
+	}
+	if direction == up {
+		fmt.Printf("(%d+%d = %d) < %d\n", t.y, movedPixels, t.y+movedPixels, gameH-t.size[0])
+		return t.y+movedPixels < gameH-t.size[1]
+	}
+	if direction == down {
+		return t.y-movedPixels > t.size[1]
+	}
+	return false
+}
+
+func (t *tank) getNewPos(direction Direction) (int64, int64) {
+	movedPixels := int64(1)
+	if !t.canMove(direction, movedPixels) {
+		return t.x, t.y
+	}
 	if direction == right {
 		return t.x + movedPixels, t.y
 	}
@@ -77,5 +101,5 @@ func (t *tank) getNewPos(time int64, direction Direction) (int64, int64) {
 
 func (t *tank) update(time int64, direction Direction) {
 	t.direction = direction
-	t.x, t.y = t.getNewPos(time, direction)
+	t.x, t.y = t.getNewPos(direction)
 }
