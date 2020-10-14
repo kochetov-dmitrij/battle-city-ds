@@ -61,7 +61,7 @@ func (g *game) Run() {
 	direction := up
 	moves := false
 	playerTank := g.loadTank(g.sprites.players[0], false)
-	last := time.Now()
+	// last := time.Now()
 
 	g.world.worldMap = g.levels[0] // TODO change to loading from menu
 	g.world.tanks = append(g.world.tanks, playerTank)
@@ -91,11 +91,8 @@ func (g *game) Run() {
 		g.canvas.Clear(colornames.Black)
 		g.draw()
 
-		last := time.Since(last).Milliseconds()
-		if moves {
-			playerTank.update(last, direction)
-		}
-		playerTank.draw(g.canvas)
+		// last := time.Since(last).Milliseconds()
+		g.updateTank(playerTank, direction, moves)
 
 		// g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
 

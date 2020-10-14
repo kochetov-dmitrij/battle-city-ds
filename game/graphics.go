@@ -1,6 +1,8 @@
 package game
 
-import "github.com/faiface/pixel"
+import (
+	"github.com/faiface/pixel"
+)
 
 const (
 	tileEmpty = '.'
@@ -21,9 +23,15 @@ func (t *tile) draw(target pixel.Target) {
 	t.sprite.Draw(target, pixel.IM.Moved(pixel.V(float64(t.x), float64(t.y))))
 }
 
-func tilePositionMat(x int64, y int64) (int64, int64) {
+func tilePixelPosition(x int64, y int64) (int64, int64) {
 	y = (26-y)*8 - 4
 	x = x*8 + 4
+	return x, y
+}
+
+func tileWorldMapByPixel(x int64, y int64) (int64, int64) {
+	x = (x - 4) / 8
+	y = 26 - (y+4)/8
 	return x, y
 }
 
@@ -33,7 +41,7 @@ func (g *game) draw() error {
 			if g.world.worldMap[i][j] == tileEmpty {
 				continue
 			}
-			x, y := tilePositionMat(int64(j), int64(i))
+			x, y := tilePixelPosition(int64(j), int64(i))
 			t := tile{
 				sprite: g.sprites.tiles[g.world.worldMap[i][j]],
 				x:      x,
