@@ -20,11 +20,16 @@ type game struct {
 	world     *world
 }
 
+const (
+	gameW = 240
+	gameH = 208
+)
+
 func NewGame(assetsPath string) (g *game) {
 	sprites := loadSprites(filepath.Join(assetsPath, "sprites"))
 	levels := loadLevels(filepath.Join(assetsPath, "levels"))
 
-	windowBounds := pixel.Rect{Max: pixel.Vec{X: 480, Y: 416}}
+	windowBounds := pixel.Rect{Max: pixel.Vec{X: 2 * gameW, Y: 2 * gameH}}
 	cfg := pixelgl.WindowConfig{
 		Title:  "Battle City",
 		Bounds: windowBounds,
@@ -55,7 +60,7 @@ func (g *game) Run() {
 
 	direction := up
 	moves := false
-	playerTank := loadTank(g.sprites.players[0], false)
+	playerTank := g.loadTank(g.sprites.players[0], false)
 	last := time.Now()
 
 	g.world.worldMap = g.levels[0] // TODO change to loading from menu
