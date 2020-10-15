@@ -17,6 +17,7 @@ type sprites struct {
 	players               []*pixel.Sprite
 	arrows                []*pixel.Sprite
 	explosions            []*pixel.Sprite
+	spawns                []*pixel.Sprite
 	tiles                 map[byte]*pixel.Sprite
 }
 
@@ -31,7 +32,6 @@ func loadSprites(spritesPath string) *sprites {
 		panic(err)
 	}
 	spriteSheet := pixel.PictureDataFromImage(spritesImg)
-	sprite := pixel.NewSprite(spriteSheet, pixel.R(48, 40, 56, 48))
 	return &sprites{
 		flag:       pixel.NewSprite(spriteSheet, pixel.R(64, 48, 80, 63)),
 		bullet:     pixel.NewSprite(spriteSheet, pixel.R(75, 34, 78, 38)),
@@ -58,6 +58,10 @@ func loadSprites(spritesPath string) *sprites {
 			tileWater: pixel.NewSprite(spriteSheet, pixel.R(64, 40, 72, 48)),
 			'w':       pixel.NewSprite(spriteSheet, pixel.R(72, 40, 80, 48)),
 			tileFroze: pixel.NewSprite(spriteSheet, pixel.R(64, 32, 72, 40)),
+		},
+		spawns: []*pixel.Sprite{
+			pixel.NewSprite(spriteSheet, pixel.R(32, 48, 48, 64)),
+			pixel.NewSprite(spriteSheet, pixel.R(48, 48, 64, 64)),
 		},
 	}
 }

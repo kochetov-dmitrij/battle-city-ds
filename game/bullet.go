@@ -7,16 +7,6 @@ import (
 	"github.com/faiface/pixel"
 )
 
-type State int
-
-const (
-	removed    = iota
-	explodingS // small
-	explodingB // big
-	explodingM // medium
-	active
-)
-
 type bullet struct {
 	sprite    pixel.Sprite
 	direction Direction

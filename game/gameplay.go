@@ -7,6 +7,7 @@ import (
 )
 
 type Direction int
+type State int
 
 const (
 	pixelsPerSecond           = 40
@@ -14,6 +15,15 @@ const (
 	down
 	left
 	right
+)
+
+const (
+	removed    = iota
+	explodingS // small
+	explodingB // big
+	explodingM // medium
+	active
+	spawning = active + 20
 )
 
 type world struct {
@@ -27,6 +37,7 @@ type tank struct {
 	x, y      int64
 	size      [2]int64
 	bullet    *bullet
+	state     State
 }
 
 func (g *game) loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
@@ -42,23 +53,32 @@ func (g *game) loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
 		y:         size[1], // + rand.Int63n(20),
 		size:      size,
 		bullet:    nil,
+		state:     spawning,
 	}
 	return t
 }
 
-func (t *tank) draw(target pixel.Target) {
+func (t *tank) draw(g *game) {
 	mat := pixel.IM
-	switch t.direction {
-	case left:
-		mat = mat.Rotated(pixel.ZV, math.Pi/2)
-	case down:
-		mat = mat.Rotated(pixel.ZV, math.Pi)
-	case right:
-		mat = mat.Rotated(pixel.ZV, 3*math.Pi/2)
+	sprite := t.sprite
+
+	if t.state == active {
+		switch t.direction {
+		case left:
+			mat = mat.Rotated(pixel.ZV, math.Pi/2)
+		case down:
+			mat = mat.Rotated(pixel.ZV, math.Pi)
+		case right:
+			mat = mat.Rotated(pixel.ZV, 3*math.Pi/2)
+		}
 	}
+	if t.state > active {
+		sprite = *g.sprites.spawns[(t.state/4)%2]
+	}
+
 	mat = mat.Moved(pixel.V(float64(t.x), float64(t.y)))
 
-	t.sprite.Draw(target, mat)
+	sprite.Draw(g.canvas, mat)
 
 	// t.sprite.DrawColorMask(target, mat) TODO ADD COLOR MASK
 }
@@ -167,12 +187,18 @@ func (t *tank) getNewPos(direction Direction, movedPixels int64) (int64, int64) 
 }
 
 func (g *game) updateTank(t *tank, direction Direction, moves bool) {
+	if t.state > active {
+		t.draw(g)
+		t.state--
+		return
+	}
+
 	movedPixels := int64(2)
 	t.direction = direction
 	if moves && t.canMove(g, direction, movedPixels) {
 		t.x, t.y = t.getNewPos(direction, movedPixels)
 	}
-	t.draw(g.canvas)
+	t.draw(g)
 	if t.bullet != nil {
 		t.updateBullet(g)
 	}
