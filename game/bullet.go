@@ -59,15 +59,25 @@ func (b *bullet) draw(target pixel.Target) {
 }
 
 func (b *bullet) checkTankDestroyed(g *game, playerTank *tank) bool {
-	bulletRect := b.sprite.Frame()
-	bulletV := pixel.V(float64(b.x), float64(b.y)).Sub(bulletRect.Min)
-	bulletRect = bulletRect.Moved(bulletV)
+	bulletSpriteRect := b.sprite.Frame()
+	bulletV := pixel.V(float64(b.x), float64(b.y)).Sub(bulletSpriteRect.Min)
+	bulletRect := bulletSpriteRect.Moved(bulletV)
 
 	for _, player := range g.players {
 		t := player.tank
 		if t == playerTank {
 			continue
 		}
+		if t.bullet != nil {
+			anotherBulletV := pixel.V(float64(t.bullet.x), float64(t.bullet.y)).Sub(bulletSpriteRect.Min)
+			anotherBulletRect := bulletSpriteRect.Moved(anotherBulletV)
+			if bulletRect.Intersects(anotherBulletRect) {
+				playerTank.bullet = nil
+				t.bullet = nil
+				return true
+			}
+		}
+
 		tankRect := t.sprite.Frame()
 		tankV := pixel.V(float64(t.x), float64(t.y)).Sub(tankRect.Min)
 		tankRect = tankRect.Moved(tankV)

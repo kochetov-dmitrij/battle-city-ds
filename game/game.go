@@ -88,6 +88,11 @@ func (g *game) Run() {
 		}
 		if g.window.JustPressed(pixelgl.KeyF) {
 			localPlayer.tank.fire(g)
+			for _, player := range g.players {
+				if player != localPlayer {
+					player.tank.fire(g)
+				}
+			}
 		}
 		if g.window.Pressed(pixelgl.KeyS) {
 			direction = down
