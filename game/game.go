@@ -18,6 +18,7 @@ type game struct {
 	canvas    *pixelgl.Canvas
 	levels    [][26][26]byte
 	world     *world
+	players   [4]*player
 }
 
 const (
@@ -49,6 +50,7 @@ func NewGame(assetsPath string) (g *game) {
 		canvas:    canvas,
 		levels:    levels,
 		world:     &world{},
+		players:   [4]*player{nil, nil, nil, nil},
 	}
 	return g
 }
@@ -60,11 +62,9 @@ func (g *game) Run() {
 
 	direction := up
 	moves := false
-	playerTank := g.loadTank(g.sprites.players[0], false)
-	// last := time.Now()
-
+	localPlayer := g.loadPlayer("default")
 	g.world.worldMap = g.levels[0] // TODO change to loading from menu
-	g.world.tanks = append(g.world.tanks, playerTank)
+
 	for !g.window.Closed() {
 		moves = false
 		if g.window.Pressed(pixelgl.KeyA) {
@@ -84,7 +84,7 @@ func (g *game) Run() {
 			moves = true
 		}
 		if g.window.JustPressed(pixelgl.KeyF) {
-			playerTank.fire(g)
+			localPlayer.tank.fire(g)
 		}
 
 		g.window.Clear(colornames.White)
@@ -92,7 +92,7 @@ func (g *game) Run() {
 		g.draw()
 
 		// last := time.Since(last).Milliseconds()
-		g.updateTank(playerTank, direction, moves)
+		g.updatePlayer(localPlayer, direction, moves)
 
 		// g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
 

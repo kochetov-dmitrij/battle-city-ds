@@ -19,12 +19,13 @@ const (
 )
 
 const (
-	removed    = iota
+	_          = iota
 	explodingS // small
 	explodingB // big
 	explodingM // medium
 	active
 	spawning = active + 20
+	removed  = spawning + 10
 )
 
 type world struct {
@@ -39,22 +40,25 @@ type tank struct {
 	size      [2]int64
 	bullet    *bullet
 	state     State
+	color     *pixel.RGBA
 }
 
-func (g *game) getSpawnPosition() (int64, int64) {
-	n := len(g.world.tanks)
+func (g *game) getSpawnPosition(number byte) (int64, int64) {
 	coordinates := []int64{tankSize - 4, gameH - tankSize + 4}
-	x, y := coordinates[n%2], coordinates[n/2]
+	x, y := coordinates[number%2], coordinates[number/2]
 	return x, y
 }
 
-func (g *game) loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
-	if changeColor {
-		// TODO add coloring
+func (g *game) loadTank(number byte) (t *tank) {
+	sprite := g.sprites.players[number%2]
+	colorMask := &pixel.RGBA{1, 1, 1, 1}
+	if number/2 == 1 {
+		colorMask = &pixel.RGBA{0.5, 0.4, 0.2, 1}
 	}
+
 	size := [2]int64{int64(sprite.Frame().Max.X-sprite.Frame().Min.X) / 2,
 		int64(sprite.Frame().Max.Y-sprite.Frame().Min.Y) / 2}
-	x, y := g.getSpawnPosition()
+	x, y := g.getSpawnPosition(number)
 	t = &tank{
 		direction: up,
 		sprite:    *sprite,
@@ -63,6 +67,7 @@ func (g *game) loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
 		size:      size,
 		bullet:    nil,
 		state:     spawning,
+		color:     colorMask,
 	}
 	return t
 }
@@ -87,9 +92,7 @@ func (t *tank) draw(g *game) {
 
 	mat = mat.Moved(pixel.V(float64(t.x), float64(t.y)))
 
-	sprite.Draw(g.canvas, mat)
-
-	// t.sprite.DrawColorMask(target, mat) TODO ADD COLOR MASK
+	sprite.DrawColorMask(g.canvas, mat, t.color)
 }
 
 func checkBlockingTile(g *game, position [2]int64, size [2]int64, direction Direction) bool {
