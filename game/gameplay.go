@@ -46,6 +46,7 @@ type tank struct {
 	state     State
 	color     *pixel.RGBA
 	spawn     [2]int64
+	number    byte
 }
 
 func (g *game) getSpawnPosition(number byte) (int64, int64) {
@@ -74,6 +75,7 @@ func (g *game) loadTank(number byte) (t *tank) {
 		state:     spawning,
 		color:     colorMask,
 		spawn:     [2]int64{x, y},
+		number:    number,
 	}
 	return t
 }

@@ -58,14 +58,14 @@ func (b *bullet) draw(target pixel.Target) {
 	b.sprite.Draw(target, mat)
 }
 
-func (b *bullet) checkTankDestroyed(g *game) bool {
+func (b *bullet) checkTankDestroyed(g *game, playerTank *tank) bool {
 	bulletRect := b.sprite.Frame()
 	bulletV := pixel.V(float64(b.x), float64(b.y)).Sub(bulletRect.Min)
 	bulletRect = bulletRect.Moved(bulletV)
 
 	for _, player := range g.players {
 		t := player.tank
-		if t.bullet == b {
+		if t == playerTank {
 			continue
 		}
 		tankRect := t.sprite.Frame()
@@ -73,13 +73,17 @@ func (b *bullet) checkTankDestroyed(g *game) bool {
 		tankRect = tankRect.Moved(tankV)
 
 		if !bulletRect.Intersects(tankRect) && !rectContains(tankRect, bulletRect) {
-			fmt.Println(tankRect, bulletRect)
+			continue
+		}
+		if t.state != active {
 			continue
 		}
 
 		b.state = removed
 		t.state = explodingS + 1
 		t.bullet = nil
+		g.incrementScore(g.players[playerTank.number])
+		fmt.Println(g.players[playerTank.number].score)
 		return true
 	}
 	return false
@@ -142,7 +146,7 @@ func (b *bullet) checkBlockingTile(g *game) {
 	}
 }
 
-func (b *bullet) moveBullet(g *game) {
+func (b *bullet) moveBullet(g *game, t *tank) {
 	movedPixels := int64(4)
 	if b.direction == right {
 		if b.x+movedPixels >= gameH {
@@ -176,7 +180,7 @@ func (b *bullet) moveBullet(g *game) {
 		}
 		b.y = b.y - movedPixels
 	}
-	if b.checkTankDestroyed(g) {
+	if b.checkTankDestroyed(g, t) {
 		return
 	}
 	b.checkBlockingTile(g)
@@ -185,7 +189,7 @@ func (b *bullet) moveBullet(g *game) {
 func (t *tank) updateBullet(g *game) {
 	b := t.bullet
 	if b.state == active {
-		b.moveBullet(g)
+		b.moveBullet(g, t)
 	}
 	switch b.state {
 	case explodingS:
