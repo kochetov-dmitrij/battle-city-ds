@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/faiface/pixel"
@@ -55,6 +56,47 @@ func (b *bullet) draw(target pixel.Target) {
 	}
 	mat = mat.Moved(pixel.V(float64(b.x), float64(b.y)))
 	b.sprite.Draw(target, mat)
+}
+
+func (b *bullet) checkTankDestroyed(g *game, playerTank *tank) bool {
+	bulletSpriteRect := b.sprite.Frame()
+	bulletV := pixel.V(float64(b.x), float64(b.y)).Sub(bulletSpriteRect.Min)
+	bulletRect := bulletSpriteRect.Moved(bulletV)
+
+	for _, player := range g.players {
+		t := player.tank
+		if t == playerTank {
+			continue
+		}
+		if t.bullet != nil {
+			anotherBulletV := pixel.V(float64(t.bullet.x), float64(t.bullet.y)).Sub(bulletSpriteRect.Min)
+			anotherBulletRect := bulletSpriteRect.Moved(anotherBulletV)
+			if bulletRect.Intersects(anotherBulletRect) {
+				playerTank.bullet = nil
+				t.bullet = nil
+				return true
+			}
+		}
+
+		tankRect := t.sprite.Frame()
+		tankV := pixel.V(float64(t.x), float64(t.y)).Sub(tankRect.Min)
+		tankRect = tankRect.Moved(tankV)
+
+		if !bulletRect.Intersects(tankRect) && !rectContains(tankRect, bulletRect) {
+			continue
+		}
+		if t.state != active {
+			continue
+		}
+
+		b.state = removed
+		t.state = explodingS + 1
+		t.bullet = nil
+		g.incrementScore(g.players[playerTank.number])
+		fmt.Println(g.players[playerTank.number].score)
+		return true
+	}
+	return false
 }
 
 func (b *bullet) checkBlockingTile(g *game) {
@@ -114,7 +156,7 @@ func (b *bullet) checkBlockingTile(g *game) {
 	}
 }
 
-func (b *bullet) moveBullet(g *game) {
+func (b *bullet) moveBullet(g *game, t *tank) {
 	movedPixels := int64(4)
 	if b.direction == right {
 		if b.x+movedPixels >= gameH {
@@ -148,13 +190,16 @@ func (b *bullet) moveBullet(g *game) {
 		}
 		b.y = b.y - movedPixels
 	}
+	if b.checkTankDestroyed(g, t) {
+		return
+	}
 	b.checkBlockingTile(g)
 }
 
 func (t *tank) updateBullet(g *game) {
 	b := t.bullet
 	if b.state == active {
-		b.moveBullet(g)
+		b.moveBullet(g, t)
 	}
 	switch b.state {
 	case explodingS:
@@ -163,6 +208,8 @@ func (t *tank) updateBullet(g *game) {
 	case explodingM:
 		t.bullet = nil
 		b.sprite = *g.sprites.explosions[1]
+	case removed:
+		t.bullet = nil
 	}
 
 	b.draw(g.canvas)
