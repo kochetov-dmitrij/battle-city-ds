@@ -64,6 +64,9 @@ func (g *game) Run() {
 	moves := false
 	localPlayer := g.loadPlayer("default")
 	g.world.worldMap = g.levels[0] // TODO change to loading from menu
+	for i := 1; i < 4; i++ {
+		g.loadPlayer(string(i))
+	}
 
 	for !g.window.Closed() {
 		moves = false
@@ -99,8 +102,9 @@ func (g *game) Run() {
 		g.draw()
 
 		// last := time.Since(last).Milliseconds()
-		g.updatePlayer(localPlayer, direction, moves)
-
+		for _, player := range g.players {
+			g.updatePlayer(player, direction, moves)
+		}
 		// g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
 
 		// g.sprites.tiles[tileEmpty].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(0.5)))

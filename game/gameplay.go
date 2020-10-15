@@ -21,8 +21,12 @@ const (
 const (
 	_          = iota
 	explodingS // small
-	explodingB // big
+	_
+	_
 	explodingM // medium
+	_
+	_
+	explodingB // big
 	active
 	spawning = active + 20
 	removed  = spawning + 10
@@ -41,6 +45,7 @@ type tank struct {
 	bullet    *bullet
 	state     State
 	color     *pixel.RGBA
+	spawn     [2]int64
 }
 
 func (g *game) getSpawnPosition(number byte) (int64, int64) {
@@ -68,6 +73,7 @@ func (g *game) loadTank(number byte) (t *tank) {
 		bullet:    nil,
 		state:     spawning,
 		color:     colorMask,
+		spawn:     [2]int64{x, y},
 	}
 	return t
 }
@@ -75,7 +81,7 @@ func (g *game) loadTank(number byte) (t *tank) {
 func (t *tank) draw(g *game) {
 	mat := pixel.IM
 	sprite := t.sprite
-
+	color := &pixel.RGBA{1, 1, 1, 1}
 	if t.state == active {
 		switch t.direction {
 		case left:
@@ -85,14 +91,26 @@ func (t *tank) draw(g *game) {
 		case right:
 			mat = mat.Rotated(pixel.ZV, 3*math.Pi/2)
 		}
+		color = t.color
 	}
 	if t.state > active {
 		sprite = *g.sprites.spawns[(t.state/4)%2]
 	}
+	if t.state > explodingS && t.state <= explodingM {
+		sprite = *g.sprites.explosions[1]
+		t.state++
+	}
+	if t.state > explodingM && t.state <= explodingB {
+		sprite = *g.sprites.explosions[2]
+		t.state++
+		if t.state > explodingB {
+			t.state = removed
+		}
+	}
 
 	mat = mat.Moved(pixel.V(float64(t.x), float64(t.y)))
 
-	sprite.DrawColorMask(g.canvas, mat, t.color)
+	sprite.DrawColorMask(g.canvas, mat, color)
 }
 
 func checkBlockingTile(g *game, position [2]int64, size [2]int64, direction Direction) bool {
@@ -199,7 +217,17 @@ func (t *tank) getNewPos(direction Direction, movedPixels int64) (int64, int64) 
 }
 
 func (g *game) updateTank(t *tank, direction Direction, moves bool) {
-	if t.state > active {
+	if t.state > spawning {
+		t.state--
+		return
+	}
+
+	if t.state == spawning {
+		t.x, t.y = t.spawn[0], t.spawn[1]
+		t.state--
+	}
+
+	if t.state > active && t.state < spawning {
 		t.draw(g)
 		t.state--
 		return
@@ -207,7 +235,7 @@ func (g *game) updateTank(t *tank, direction Direction, moves bool) {
 
 	movedPixels := int64(2)
 	t.direction = direction
-	if moves && t.canMove(g, direction, movedPixels) {
+	if moves && t.state == active && t.canMove(g, direction, movedPixels) {
 		t.x, t.y = t.getNewPos(direction, movedPixels)
 	}
 	t.draw(g)

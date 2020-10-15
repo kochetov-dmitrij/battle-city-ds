@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/faiface/pixel"
@@ -55,6 +56,33 @@ func (b *bullet) draw(target pixel.Target) {
 	}
 	mat = mat.Moved(pixel.V(float64(b.x), float64(b.y)))
 	b.sprite.Draw(target, mat)
+}
+
+func (b *bullet) checkTankDestroyed(g *game) bool {
+	bulletRect := b.sprite.Frame()
+	bulletV := pixel.V(float64(b.x), float64(b.y)).Sub(bulletRect.Min)
+	bulletRect = bulletRect.Moved(bulletV)
+
+	for _, player := range g.players {
+		t := player.tank
+		if t.bullet == b {
+			continue
+		}
+		tankRect := t.sprite.Frame()
+		tankV := pixel.V(float64(t.x), float64(t.y)).Sub(tankRect.Min)
+		tankRect = tankRect.Moved(tankV)
+
+		if !bulletRect.Intersects(tankRect) && !rectContains(tankRect, bulletRect) {
+			fmt.Println(tankRect, bulletRect)
+			continue
+		}
+
+		b.state = removed
+		t.state = explodingS + 1
+		t.bullet = nil
+		return true
+	}
+	return false
 }
 
 func (b *bullet) checkBlockingTile(g *game) {
@@ -148,6 +176,9 @@ func (b *bullet) moveBullet(g *game) {
 		}
 		b.y = b.y - movedPixels
 	}
+	if b.checkTankDestroyed(g) {
+		return
+	}
 	b.checkBlockingTile(g)
 }
 
@@ -163,6 +194,8 @@ func (t *tank) updateBullet(g *game) {
 	case explodingM:
 		t.bullet = nil
 		b.sprite = *g.sprites.explosions[1]
+	case removed:
+		t.bullet = nil
 	}
 
 	b.draw(g.canvas)
