@@ -3,48 +3,65 @@ package connection
 import (
 	"fmt"
 	"github.com/huin/goupnp"
-	//"github.com/huin/goupnp/ssdp"
 	"github.com/koron/go-ssdp"
+	"log"
+	"math/rand"
+	"net"
 	"sync"
 )
 
-var wg sync.WaitGroup
+type connectionDetails struct {
+	ip   string
+	port int
+	st   string
+}
 
-func Advertise() {
+func advertise(cd connectionDetails, wg *sync.WaitGroup) {
+	defer wg.Done()
 
 	_, err := ssdp.Advertise(
-		"my:device",                        // send as "ST"
-		"unique:id",                        // send as "USN"
-		"http://192.168.0.1:57086/foo.xml", // send as "LOCATION"
-		"go-ssdp sample",                   // send as "SERVER"
+		cd.st,
+		"",
+		fmt.Sprintf("http://%s:%d", cd.ip, cd.port),
+		"",
 		1800)
 	if err != nil {
 		panic(err)
 	}
-
-	wg.Done()
 }
 
-func Discover() {
+func discover(cd connectionDetails, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	fmt.Printf("Lol kakoi discover ..\n")
-
-	r, err := goupnp.DiscoverDevices("ssdp:all")
+	r, err := goupnp.DiscoverDevices(cd.st)
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Printf("%v\n", r)
+}
 
-	wg.Done()
+func getMyIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP
 }
 
 func Connection() {
-
+	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go Advertise()
-	go Discover()
+	cd := connectionDetails{
+		ip:   getMyIP().String(),
+		port: rand.Intn(13000-12000) + 12000,
+		st:   "battle-city-ds",
+	}
+
+	go advertise(cd, &wg)
+	go discover(cd, &wg)
 
 	wg.Wait()
 }
