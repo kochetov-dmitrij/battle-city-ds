@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/faiface/pixel"
@@ -103,7 +102,6 @@ func (b *bullet) checkBlockingTile(g *game) {
 				continue
 			}
 
-			fmt.Println(b.x, b.y, x, y, bulletRect, tileRect)
 			if !bulletRect.Intersects(tileRect) && !rectContains(tileRect, bulletRect) {
 				continue
 			}

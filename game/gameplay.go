@@ -11,6 +11,7 @@ type State int
 
 const (
 	pixelsPerSecond           = 40
+	tankSize        int64     = 13
 	up              Direction = iota
 	down
 	left
@@ -40,17 +41,25 @@ type tank struct {
 	state     State
 }
 
+func (g *game) getSpawnPosition() (int64, int64) {
+	n := len(g.world.tanks)
+	coordinates := []int64{tankSize - 4, gameH - tankSize + 4}
+	x, y := coordinates[n%2], coordinates[n/2]
+	return x, y
+}
+
 func (g *game) loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
 	if changeColor {
 		// TODO add coloring
 	}
 	size := [2]int64{int64(sprite.Frame().Max.X-sprite.Frame().Min.X) / 2,
 		int64(sprite.Frame().Max.Y-sprite.Frame().Min.Y) / 2}
+	x, y := g.getSpawnPosition()
 	t = &tank{
 		direction: up,
 		sprite:    *sprite,
-		x:         size[0], // + rand.Int63n(20),
-		y:         size[1], // + rand.Int63n(20),
+		x:         x,
+		y:         y,
 		size:      size,
 		bullet:    nil,
 		state:     spawning,
