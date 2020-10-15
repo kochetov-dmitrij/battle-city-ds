@@ -86,6 +86,13 @@ func (g *game) Run() {
 		if g.window.JustPressed(pixelgl.KeyF) {
 			localPlayer.tank.fire(g)
 		}
+		if g.window.Pressed(pixelgl.KeyS) {
+			direction = down
+			moves = true
+		}
+		// if g.window.JustPressed(pixelgl.KeySpace) {
+		// 	playerTank.fire()
+		// }
 
 		g.window.Clear(colornames.White)
 		g.canvas.Clear(colornames.Black)

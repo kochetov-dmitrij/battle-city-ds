@@ -1,8 +1,6 @@
 package game
 
-import (
-	"github.com/faiface/pixel"
-)
+import "github.com/faiface/pixel"
 
 const (
 	tileEmpty = '.'
