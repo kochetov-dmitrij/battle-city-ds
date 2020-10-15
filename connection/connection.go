@@ -7,38 +7,8 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"sync"
+	"time"
 )
-
-type connectionDetails struct {
-	ip   string
-	port int
-	st   string
-}
-
-func advertise(cd connectionDetails, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	_, err := ssdp.Advertise(
-		cd.st,
-		"",
-		fmt.Sprintf("http://%s:%d", cd.ip, cd.port),
-		"",
-		1800)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func discover(cd connectionDetails, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	r, err := goupnp.DiscoverDevices(cd.st)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%v\n", r)
-}
 
 func getMyIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
@@ -50,18 +20,66 @@ func getMyIP() net.IP {
 	return localAddr.IP
 }
 
-func Connection() {
-	var wg sync.WaitGroup
-	wg.Add(2)
+type Peers map[string]struct{}
 
-	cd := connectionDetails{
-		ip:   getMyIP().String(),
-		port: rand.Intn(13000-12000) + 12000,
-		st:   "battle-city-ds",
+type connectorP2P struct {
+	usn       string
+	myAddress string
+	peers     Peers
+}
+
+func (c *connectorP2P) advertise() {
+	ad, err := ssdp.Advertise(
+		c.usn,
+		c.usn,
+		c.myAddress,
+		"",
+		1800)
+	if err != nil {
+		panic(err)
 	}
 
-	go advertise(cd, &wg)
-	go discover(cd, &wg)
+	aliveTick := time.Tick(1 * time.Second)
 
-	wg.Wait()
+	for {
+		select {
+		case <-aliveTick:
+			_ = ad.Alive()
+		}
+	}
+}
+
+func (c *connectorP2P) discover() {
+	discoverTick := time.Tick(2 * time.Second)
+	for {
+		select {
+		case <-discoverTick:
+			response, err := goupnp.DiscoverDevices(c.usn)
+			if err != nil {
+				panic(err)
+			}
+			for _, r := range response {
+				_ = r.Location.String()
+				peerAddress := r.Location.String()
+				if _, alreadyDiscovered := c.peers[peerAddress]; !alreadyDiscovered && peerAddress != c.myAddress {
+					c.peers[peerAddress] = struct{}{}
+				}
+			}
+		}
+		log.Printf("Found peers: %v", c.peers)
+	}
+}
+
+func Connection(peers Peers) {
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	connectorP2P := &connectorP2P{
+		myAddress: fmt.Sprintf("http://%s:%d", getMyIP().String(), rand.Intn(13000-12000)+12000),
+		usn:       "game:battle-city-ds",
+		peers:     peers,
+	}
+	fmt.Printf("My connection details: %+v\n", *connectorP2P)
+
+	go connectorP2P.discover()
+	connectorP2P.advertise()
 }
