@@ -55,7 +55,7 @@ func NewGame(assetsPath string) (g *game) {
 
 func (g *game) Run() {
 	rand.Seed(time.Now().UnixNano())
-	fps := 30
+	fps := 20
 	fpsSync := time.Tick(time.Second / time.Duration(fps))
 
 	direction := up
@@ -83,9 +83,9 @@ func (g *game) Run() {
 			direction = down
 			moves = true
 		}
-		// if g.window.JustPressed(pixelgl.KeySpace) {
-		// 	playerTank.fire()
-		// }
+		if g.window.JustPressed(pixelgl.KeyF) {
+			playerTank.fire(g)
+		}
 
 		g.window.Clear(colornames.White)
 		g.canvas.Clear(colornames.Black)

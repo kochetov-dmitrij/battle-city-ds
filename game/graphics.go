@@ -24,8 +24,8 @@ func (t *tile) draw(target pixel.Target) {
 }
 
 func tilePixelPosition(x int64, y int64) (int64, int64) {
-	y = (26-y)*8 - 4
-	x = x*8 + 4
+	y = (26-y)*8 - 3
+	x = x*8 + 5
 	return x, y
 }
 

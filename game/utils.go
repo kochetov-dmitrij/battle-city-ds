@@ -31,6 +31,7 @@ func loadSprites(spritesPath string) *sprites {
 		panic(err)
 	}
 	spriteSheet := pixel.PictureDataFromImage(spritesImg)
+	sprite := pixel.NewSprite(spriteSheet, pixel.R(48, 40, 56, 48))
 	return &sprites{
 		flag:       pixel.NewSprite(spriteSheet, pixel.R(64, 48, 80, 63)),
 		bullet:     pixel.NewSprite(spriteSheet, pixel.R(75, 34, 78, 38)),
@@ -94,4 +95,9 @@ func loadLevel(levelPath string) [26][26]byte {
 		reader.ReadByte()
 	}
 	return level
+}
+
+func rectContains(r1 pixel.Rect, r2 pixel.Rect) bool {
+	return r1.Min.X < r2.Min.X && r1.Min.Y < r2.Min.Y &&
+		r1.Max.X > r2.Max.X && r1.Max.Y > r2.Max.Y
 }

@@ -26,6 +26,7 @@ type tank struct {
 	sprite    pixel.Sprite
 	x, y      int64
 	size      [2]int64
+	bullet    *bullet
 }
 
 func (g *game) loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
@@ -40,6 +41,7 @@ func (g *game) loadTank(sprite *pixel.Sprite, changeColor bool) (t *tank) {
 		x:         size[0], // + rand.Int63n(20),
 		y:         size[1], // + rand.Int63n(20),
 		size:      size,
+		bullet:    nil,
 	}
 	return t
 }
@@ -57,6 +59,8 @@ func (t *tank) draw(target pixel.Target) {
 	mat = mat.Moved(pixel.V(float64(t.x), float64(t.y)))
 
 	t.sprite.Draw(target, mat)
+
+	// t.sprite.DrawColorMask(target, mat) TODO ADD COLOR MASK
 }
 
 func checkBlockingTile(g *game, position [2]int64, size [2]int64, direction Direction) bool {
@@ -163,10 +167,13 @@ func (t *tank) getNewPos(direction Direction, movedPixels int64) (int64, int64) 
 }
 
 func (g *game) updateTank(t *tank, direction Direction, moves bool) {
-	movedPixels := int64(1)
+	movedPixels := int64(2)
 	t.direction = direction
 	if moves && t.canMove(g, direction, movedPixels) {
 		t.x, t.y = t.getNewPos(direction, movedPixels)
 	}
 	t.draw(g.canvas)
+	if t.bullet != nil {
+		t.updateBullet(g)
+	}
 }
