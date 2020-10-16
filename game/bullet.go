@@ -64,6 +64,9 @@ func (b *bullet) checkTankDestroyed(g *game, playerTank *tank) bool {
 	bulletRect := bulletSpriteRect.Moved(bulletV)
 
 	for _, player := range g.players {
+		if player == nil {
+			continue
+		}
 		t := player.tank
 		if t == playerTank {
 			continue
@@ -157,7 +160,7 @@ func (b *bullet) checkBlockingTile(g *game) {
 }
 
 func (b *bullet) moveBullet(g *game, t *tank) {
-	movedPixels := int64(4)
+	movedPixels := int64(8)
 	if b.direction == right {
 		if b.x+movedPixels >= gameH {
 			b.x = gameH - 1

@@ -55,12 +55,18 @@ func (g *game) getSpawnPosition(number byte) (int64, int64) {
 	return x, y
 }
 
-func (g *game) loadTank(number byte) (t *tank) {
-	sprite := g.sprites.players[number%2]
+func (g *game) getTankVisuals(number byte) (*pixel.Sprite, *pixel.RGBA) {
+	// sprite := g.sprites.players[number%2]
+	sprite := g.loadTankSprite(number)
 	colorMask := &pixel.RGBA{1, 1, 1, 1}
 	if number/2 == 1 {
 		colorMask = &pixel.RGBA{0.5, 0.4, 0.2, 1}
 	}
+	return sprite, colorMask
+}
+
+func (g *game) loadTank(number byte) (t *tank) {
+	sprite, colorMask := g.getTankVisuals(number)
 
 	size := [2]int64{int64(sprite.Frame().Max.X-sprite.Frame().Min.X) / 2,
 		int64(sprite.Frame().Max.Y-sprite.Frame().Min.Y) / 2}
@@ -235,7 +241,7 @@ func (g *game) updateTank(t *tank, direction Direction, moves bool) {
 		return
 	}
 
-	movedPixels := int64(2)
+	movedPixels := int64(4)
 	t.direction = direction
 	if moves && t.state == active && t.canMove(g, direction, movedPixels) {
 		t.x, t.y = t.getNewPos(direction, movedPixels)
