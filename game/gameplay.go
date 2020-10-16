@@ -60,8 +60,8 @@ func (g *game) getTankVisuals(name string) (*pixel.Sprite, *pixel.RGBA) {
 	number, _ := strconv.Atoi(name)
 	sprite := g.loadTankSprite(number)
 	colorMask := &pixel.RGBA{
-		R: float64(number%1000) / 1000, G: float64(number%100) / 100,
-		B: float64(number%10) / 10, A: 1}
+		R: 1 - 0.3*float64(number%1000)/1000, G: 1 - 0.3*float64(number%100)/100,
+		B: 1 - 0.3*float64(number%10)/10, A: 1}
 	return sprite, colorMask
 }
 
