@@ -1,0 +1,41 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+package battle_city_ds;
+option go_package = "pb;pb";
+
+service Coms {
+  rpc addMessage(Message) returns (google.protobuf.Empty);
+  //  rpc getProduct(ProductID) returns (google.protobuf.Empty);
+}
+
+message Message {
+  enum Direction {
+    STEADY = 0;
+    UP = 1;
+    DOWN = 2;
+    LEFT = 3;
+    RIGHT = 4;
+  }
+  message TankPosition {
+    uint32 x = 1;
+    uint32 y = 2;
+  }
+  message BulletPosition {
+    uint32 x = 1;
+    uint32 y = 2;
+  }
+
+  message Action {
+    google.protobuf.Timestamp ts = 1;
+    Direction tankDirection = 2;
+  }
+
+  TankPosition tankPosition = 1;
+  BulletPosition bulletPosition = 2;
+  Direction bulletDirection = 3;
+  repeated Action action = 4;
+}
+
+// protoc --go_out=connection --go-grpc_out=connection connection/pb/*.proto
+
