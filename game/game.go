@@ -2,17 +2,17 @@ package game
 
 import (
 	"context"
-	_ "image/gif"
 	"fmt"
-	"log"
-	"math/rand"
-	"path/filepath"
-	"strconv"
-	"time"
-	"regexp"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection/pb"
+	_ "image/gif"
+	"log"
+	"math/rand"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"time"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
@@ -29,12 +29,12 @@ type game struct {
 	world     *world
 	players   [4]*player
 	peers     connection.Peers
-	port	  string
+	port      string
 }
 
 const (
-	gameW = 250
-	gameH = 208
+	gameW      = 250
+	gameH      = 208
 	maxPlayers = 4
 )
 
@@ -42,7 +42,6 @@ func NewGame(assetsPath string) (g *game) {
 	peers := connection.Peers{}
 	rand.Seed(time.Now().UTC().UnixNano())
 	myPort := strconv.Itoa(rand.Intn(13000-12000) + 12000)
-	go connection.Connection(peers, myPort, &pb.ComsService{AddMessage: g.AddMessage})
 
 	sprites := loadSprites(filepath.Join(assetsPath, "sprites"))
 	levels := loadLevels(filepath.Join(assetsPath, "levels"))
@@ -70,8 +69,11 @@ func NewGame(assetsPath string) (g *game) {
 		players:   [4]*player{nil, nil, nil, nil},
 		score:     g.initScore(assetsPath),
 		peers:     peers,
-		port:	   myPort,
+		port:      myPort,
 	}
+
+	go connection.Connection(peers, myPort, &pb.ComsService{AddMessage: g.AddMessage})
+
 	return g
 }
 
@@ -83,7 +85,7 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 		if g.players[i] == nil {
 			lastNil = i
 			continue
-		} 
+		}
 		if g.players[i].name == msg.GetHost() {
 			break
 		}
@@ -102,7 +104,7 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	g.players[i].tank.x = int64(positionT.X)
 	g.players[i].tank.y = int64(positionT.Y)
 	g.players[i].tank.direction = Direction(msg.GetAction()[0].TankDirection - 1)
-	if msg.GetBulletState() == removed  {
+	if msg.GetBulletState() == removed {
 		return &empty.Empty{}, nil
 	}
 	bullet := &bullet{}
@@ -131,15 +133,15 @@ func (g *game) Run() {
 		message := &pb.Message{
 			Host:         localPlayer.name,
 			TankPosition: &pb.Message_TankPosition{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
-			TankState: 	  uint32(localPlayer.tank.state),
+			TankState:    uint32(localPlayer.tank.state),
 			// Action:		  []*pb.Message_Action { &pb.Message_Action {TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1)}},
-			BulletState:  uint32(removed),
+			BulletState: uint32(removed),
 			//todo This calls AddMessage() of all other peers and passes pb.Message
 		}
 		if localPlayer.tank.bullet != nil {
 			x, y := localPlayer.tank.bullet.x, localPlayer.tank.bullet.y
 			message.BulletDirection = pb.Message_Direction(localPlayer.tank.bullet.direction + 1)
-			message.BulletPosition  = &pb.Message_BulletPosition {X: uint32(x), Y: uint32(y)}
+			message.BulletPosition = &pb.Message_BulletPosition{X: uint32(x), Y: uint32(y)}
 			message.BulletState = uint32(localPlayer.tank.bullet.state)
 		}
 
@@ -155,7 +157,7 @@ func (g *game) Run() {
 					if g.players[i] != nil && g.players[i].name == port {
 						g.players[i] = nil
 						break
-					}	
+					}
 				}
 				delete(g.peers, peerAddress)
 				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
