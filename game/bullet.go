@@ -17,9 +17,10 @@ type bullet struct {
 	x, y      int64
 	size      [2]int64
 	state     State
+	tank      *tank
 }
 
-func (g *game) loadBullet(x int64, y int64, direction Direction, state State) *bullet {
+func (g *game) loadBullet(x int64, y int64, direction Direction, state State, tank *tank) *bullet {
 	sprite := g.sprites.bullet
 	b := &bullet{
 		sprite:    *sprite,
@@ -28,6 +29,7 @@ func (g *game) loadBullet(x int64, y int64, direction Direction, state State) *b
 		y:         y,
 		size:      [2]int64{bulletSizeX, bulletSizeY},
 		state:     state,
+		tank:      tank,
 	}
 	return b
 }
@@ -47,7 +49,7 @@ func (t *tank) fire(g *game) {
 	case down:
 		y -= 5
 	}
-	t.bullet = g.loadBullet(x, y, t.direction, active)
+	t.bullet = g.loadBullet(x, y, t.direction, active, t)
 }
 
 func (b *bullet) draw(target pixel.Target) {
@@ -159,7 +161,9 @@ func (b *bullet) checkBlockingTile(g *game) {
 			if g.world.worldMap[xMap][yMap] == tileSteel {
 				continue
 			}
-			g.world.worldMap[xMap][yMap] = tileEmpty
+			if g.port == b.tank.name {
+				g.world.worldMap[xMap][yMap] = tileEmpty
+			}
 		}
 	}
 }

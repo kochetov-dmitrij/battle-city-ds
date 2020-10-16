@@ -101,11 +101,13 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 			g.players[firstNil] = g.loadPlayer(msg.GetHost(), false)
 			fmt.Println("Peer ", g.port, ". Added new player  ", msg.GetHost())
 			i = firstNil
+		}
+	}
 
-			for i := range g.world.worldMap {
-				for j := range g.world.worldMap[i] {
-					g.world.worldMap[i][j] = msg.LevelState[i][j]
-				}
+	for i := range g.world.worldMap {
+		for j := range g.world.worldMap[i] {
+			if msg.LevelState[i][j] == 46 && g.world.worldMap[i][j] != 46 {
+				g.world.worldMap[i][j] = 46
 			}
 		}
 	}
@@ -124,7 +126,7 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	direction := Direction(msg.GetBulletDirection() - 1)
 	positionB := msg.GetBulletPosition()
 	x, y := int64(positionB.X), int64(positionB.Y)
-	g.players[i].tank.bullet = g.loadBullet(x, y, direction, state)
+	g.players[i].tank.bullet = g.loadBullet(x, y, direction, state, g.players[i].tank)
 
 	return &empty.Empty{}, nil
 }
@@ -182,7 +184,6 @@ func (g *game) Run() {
 		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
 		g.drawScore()
 		g.window.Update()
-
 
 		message := &pb.Message{
 			Host:          localPlayer.name,
