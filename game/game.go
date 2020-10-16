@@ -81,11 +81,13 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	}
 
 	i := 0
-	lastNil := -1
+	firstNil := -1
 	fmt.Println("Peer ", g.port, ". Receiving message from ", msg.GetHost())
 	for ; i < maxPlayers; i++ {
 		if g.players[i] == nil {
-			lastNil = i
+			if firstNil == -1 {
+				firstNil = i	
+			} 
 			continue
 		}
 		if g.players[i].name == msg.GetHost() {
@@ -94,11 +96,17 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	}
 	fmt.Println("Peer ", g.port, ". Trying to work with ", msg.GetHost())
 	if i == maxPlayers || g.players[i] == nil || g.players[i].name != msg.GetHost() {
-		if lastNil != -1 {
+		if firstNil != -1 {
 			fmt.Println("Peer ", g.port, ". Adding new player  ", msg.GetHost())
-			g.players[lastNil] = g.loadPlayer(msg.GetHost(), false)
+			g.players[firstNil] = g.loadPlayer(msg.GetHost(), false)
 			fmt.Println("Peer ", g.port, ". Added new player  ", msg.GetHost())
-			i = lastNil
+			i = firstNil
+			
+			for i := range g.world.worldMap {
+				for j := range g.world.worldMap[i] {
+					g.world.worldMap[i][j] = msg.LevelState[i][j]
+				}
+			}
 		}
 	}
 
@@ -117,14 +125,6 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	positionB := msg.GetBulletPosition()
 	x, y := int64(positionB.X), int64(positionB.Y)
 	g.players[i].tank.bullet = g.loadBullet(x, y, direction, state)
-
-	for i := range g.world.worldMap {
-		for j := range g.world.worldMap[i] {
-			if msg.LevelState[i][j] == 46 && g.world.worldMap[i][j] != 46 {
-				g.world.worldMap[i][j] = 46
-			}
-		}
-	}
 
 	return &empty.Empty{}, nil
 }
