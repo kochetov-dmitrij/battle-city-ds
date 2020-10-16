@@ -35,6 +35,7 @@ message Message {
   BulletPosition bulletPosition = 2;
   Direction bulletDirection = 3;
   repeated Action action = 4;
+  string host = 5;
 }
 
 // protoc --go_out=connection --go-grpc_out=connection connection/pb/*.proto
