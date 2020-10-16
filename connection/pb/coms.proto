@@ -30,7 +30,7 @@ message Message {
   string host = 7;
   repeated string allPeers = 8;
   repeated bytes levelState = 9;
-  uint32 score = 10;
+  map<string, uint32> score = 10;
   string lastWinner = 11;
 }
 
