@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection"
@@ -11,7 +12,6 @@ import (
 	"math/rand"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/faiface/pixel"
@@ -25,11 +25,12 @@ type game struct {
 	window    *pixelgl.Window
 	canvas    *pixelgl.Canvas
 	score     *score
-	levels    [][26][26]byte
+	levels    [][][]byte
 	world     *world
 	players   [4]*player
 	peers     connection.Peers
 	port      string
+	address   string
 }
 
 const (
@@ -39,9 +40,12 @@ const (
 )
 
 func NewGame(assetsPath string) (g *game) {
-	peers := connection.Peers{}
-	rand.Seed(time.Now().UTC().UnixNano())
-	myPort := strconv.Itoa(rand.Intn(13000-12000) + 12000)
+	g = &game{
+		titleSize: 16,
+		world:     &world{},
+		players:   [4]*player{nil, nil, nil, nil},
+	}
+	peers, myAddress, myPort := connection.Connection(&pb.ComsService{AddMessage: g.AddMessage})
 
 	sprites := loadSprites(filepath.Join(assetsPath, "sprites"))
 	levels := loadLevels(filepath.Join(assetsPath, "levels"))
@@ -59,25 +63,23 @@ func NewGame(assetsPath string) (g *game) {
 	canvas := pixelgl.NewCanvas(windowBounds)
 	canvas.SetMatrix(pixel.IM.Scaled(pixel.ZV, 2))
 
-	g = &game{
-		sprites:   sprites,
-		titleSize: 16,
-		window:    window,
-		canvas:    canvas,
-		levels:    levels,
-		world:     &world{},
-		players:   [4]*player{nil, nil, nil, nil},
-		score:     g.initScore(assetsPath),
-		peers:     peers,
-		port:      myPort,
-	}
-
-	go connection.Connection(peers, myPort, &pb.ComsService{AddMessage: g.AddMessage})
+	g.sprites = sprites
+	g.window = window
+	g.canvas = canvas
+	g.levels = levels
+	g.peers = peers
+	g.port = myPort
+	g.address = myAddress
+	g.score = g.initScore(assetsPath)
 
 	return g
 }
 
 func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, error) {
+	for _, peer := range msg.AllPeers {
+		g.peers.Add(peer, g.address)
+	}
+
 	i := 0
 	lastNil := -1
 	fmt.Println("Peer ", g.port, ". Receiving message from ", msg.GetHost())
@@ -104,7 +106,7 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	positionT := msg.GetTankPosition()
 	g.players[i].tank.x = int64(positionT.X)
 	g.players[i].tank.y = int64(positionT.Y)
-	g.players[i].tank.direction = Direction(msg.GetAction()[0].TankDirection - 1)
+	g.players[i].tank.direction = Direction(msg.GetTankDirection() - 1)
 	if msg.GetBulletState() == removed {
 		g.players[i].tank.bullet = nil
 		return &empty.Empty{}, nil
@@ -115,7 +117,24 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	positionB := msg.GetBulletPosition()
 	x, y := int64(positionB.X), int64(positionB.Y)
 	g.players[i].tank.bullet = g.loadBullet(x, y, direction, state)
+
+	for i := range g.world.worldMap {
+		for j := range g.world.worldMap[i] {
+			if msg.LevelState[i][j] == 46 && g.world.worldMap[i][j] != 46 {
+				g.world.worldMap[i][j] = 46
+			}
+		}
+	}
+
 	return &empty.Empty{}, nil
+}
+
+func (g *game) LoadMap(lvl int) {
+	g.world.worldMap = make([][]byte, 26)
+	for rowIdx := range g.levels[lvl] {
+		g.world.worldMap[rowIdx] = make([]byte, 26)
+		copy(g.world.worldMap[rowIdx], g.levels[lvl][rowIdx])
+	}
 }
 
 func (g *game) Run() {
@@ -126,30 +145,33 @@ func (g *game) Run() {
 	direction := up
 	moves := false
 	localPlayer := g.loadPlayer(g.port, true)
-	g.world.worldMap = g.levels[0] // TODO change to loading from menu
+	g.LoadMap(0)
 
 	for !g.window.Closed() {
 		message := &pb.Message{
-			Host:         localPlayer.name,
-			TankPosition: &pb.Message_TankPosition{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
-			TankState:    uint32(localPlayer.tank.state),
-			Action:		  []*pb.Message_Action { &pb.Message_Action {TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1)}},
-			BulletState:  uint32(removed),
-			//todo This calls AddMessage() of all other peers and passes pb.Message
+			Host:          localPlayer.name,
+			TankPosition:  &pb.Message_Position{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
+			TankState:     uint32(localPlayer.tank.state),
+			TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1),
+			BulletState:   uint32(removed),
+			AllPeers:      append(g.peers.GetList(), g.address),
+			LevelState:    g.world.worldMap,
 		}
 		if localPlayer.tank.bullet != nil {
 			x, y := localPlayer.tank.bullet.x, localPlayer.tank.bullet.y
 			message.BulletDirection = pb.Message_Direction(localPlayer.tank.bullet.direction + 1)
-			message.BulletPosition = &pb.Message_BulletPosition{X: uint32(x), Y: uint32(y)}
+			message.BulletPosition = &pb.Message_Position{X: uint32(x), Y: uint32(y)}
 			message.BulletState = uint32(localPlayer.tank.bullet.state)
 		}
 
 		for peerAddress, client := range g.peers {
 			fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
-			ctx, _ := context.WithTimeout(context.Background(), time.Second)
+			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*500)
 			fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
+
+			// This calls AddMessage() of all other peers and passes pb.Message
 			_, err := client.AddMessage(ctx, message)
-			if err != nil {
+			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 				fmt.Println("Peer ", g.port, ". Wow an ERROR while sending info to ", peerAddress)
 				port := regexp.MustCompile("http:.*:(.*)").FindStringSubmatch(peerAddress)[1]
 				for i := 0; i < maxPlayers; i++ {
@@ -158,7 +180,7 @@ func (g *game) Run() {
 						break
 					}
 				}
-				delete(g.peers, peerAddress)
+				g.peers.Remove(peerAddress)
 				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
 			}
 		}

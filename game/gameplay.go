@@ -34,7 +34,7 @@ const (
 
 type world struct {
 	tanks    []*tank
-	worldMap [26][26]byte
+	worldMap [][]byte
 }
 
 type tank struct {

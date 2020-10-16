@@ -7,9 +7,10 @@ import (
 	"github.com/koron/go-ssdp"
 	"google.golang.org/grpc"
 	"log"
+	"math/rand"
 	"net"
-	"reflect"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -24,6 +25,29 @@ func getMyIP() net.IP {
 }
 
 type Peers map[string]pb.ComsClient
+
+func (p *Peers) Add(peerAddress, myAddress string) {
+	if _, alreadyDiscovered := (*p)[peerAddress]; !alreadyDiscovered && peerAddress != myAddress {
+		peerAddressWithoutHTP := regexp.MustCompile("^http://").ReplaceAllString(peerAddress, "")
+		conn, err := grpc.Dial(peerAddressWithoutHTP, grpc.WithInsecure())
+		if err != nil {
+			log.Fatalf("Did not connect: %v", err)
+			return
+		}
+		(*p)[peerAddress] = pb.NewComsClient(conn)
+	}
+}
+func (p *Peers) Remove(peerAddress string) {
+	delete(*p, peerAddress)
+}
+
+func (p *Peers) GetList() (list []string) {
+	list = []string{}
+	for k := range *p {
+		list = append(list, k)
+	}
+	return list
+}
 
 type connectorP2P struct {
 	usn       string
@@ -63,14 +87,7 @@ func (c *connectorP2P) discover() {
 			}
 			for _, r := range response {
 				peerAddress := r.Location.String()
-				if _, alreadyDiscovered := c.peers[peerAddress]; !alreadyDiscovered && peerAddress != c.myAddress {
-					peerAddressWithoutHTP := regexp.MustCompile("^http://").ReplaceAllString(peerAddress, "")
-					conn, err := grpc.Dial(peerAddressWithoutHTP, grpc.WithInsecure())
-					if err != nil {
-						log.Fatalf("Did not connect: %v", err)
-					}
-					c.peers[peerAddress] = pb.NewComsClient(conn)
-				}
+				c.peers.Add(peerAddress, c.myAddress)
 			}
 		}
 	}
@@ -90,14 +107,20 @@ func startGRPCServer(port string, comsService *pb.ComsService) {
 
 func logConnectedPeers(peers Peers) {
 	for {
-		log.Printf("Connected peers: %v", reflect.ValueOf(peers).MapKeys())
+		log.Printf("Connected peers: %v", peers.GetList())
 		time.Sleep(5 * time.Second)
 	}
 }
 
-func Connection(peers Peers, myPort string, comsService *pb.ComsService) {
+func Connection(comsService *pb.ComsService) (peers Peers, myAddress, myPort string) {
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	peers = Peers{}
+	myPort = strconv.Itoa(rand.Intn(13000-12000) + 12000)
+	myAddress = fmt.Sprintf("http://%s:%s", getMyIP().String(), myPort)
+
 	connectorP2P := &connectorP2P{
-		myAddress: fmt.Sprintf("http://%s:%s", getMyIP().String(), myPort),
+		myAddress: myAddress,
 		usn:       "game:battle-city-ds",
 		peers:     peers,
 	}
@@ -106,5 +129,7 @@ func Connection(peers Peers, myPort string, comsService *pb.ComsService) {
 	startGRPCServer(myPort, comsService)
 	go logConnectedPeers(connectorP2P.peers)
 	go connectorP2P.discover()
-	connectorP2P.advertise()
+	go connectorP2P.advertise()
+
+	return
 }

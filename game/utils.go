@@ -78,8 +78,8 @@ func (g *game) loadTankSprite(number byte) *pixel.Sprite {
 	return pixel.NewSprite(g.sprites.sheet, pixel.R(16, 99, 29, 112))
 }
 
-func loadLevels(levelsPath string) [][26][26]byte {
-	var levels [][26][26]byte
+func loadLevels(levelsPath string) [][][]byte {
+	var levels [][][]byte
 	err := filepath.Walk(levelsPath, func(path string, info os.FileInfo, err error) error {
 		if levelsPath == path {
 			return nil
@@ -93,14 +93,15 @@ func loadLevels(levelsPath string) [][26][26]byte {
 	return levels
 }
 
-func loadLevel(levelPath string) [26][26]byte {
+func loadLevel(levelPath string) [][]byte {
 	levelFile, err := os.Open(levelPath)
 	if err != nil {
 		panic(err)
 	}
 	reader := bufio.NewReader(levelFile)
-	level := [26][26]byte{}
+	level := make([][]byte, 26)
 	for i := range level {
+		level[i] = make([]byte, 26)
 		for j := range level[i] {
 			tile, err := reader.ReadByte()
 			if err != nil {

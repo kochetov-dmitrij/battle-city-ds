@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/faiface/pixel"
@@ -31,7 +30,7 @@ func (g *game) loadBullet(x int64, y int64, direction Direction, state State) *b
 		state:     state,
 	}
 	return b
-} 
+}
 
 func (t *tank) fire(g *game) {
 	if t.bullet != nil {
