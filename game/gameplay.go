@@ -2,6 +2,7 @@ package game
 
 import (
 	"math"
+	"strconv"
 
 	"github.com/faiface/pixel"
 )
@@ -55,17 +56,17 @@ func (g *game) getSpawnPosition(number byte) (int64, int64) {
 	return x, y
 }
 
-func (g *game) getTankVisuals(number byte) (*pixel.Sprite, *pixel.RGBA) {
+func (g *game) getTankVisuals(name string) (*pixel.Sprite, *pixel.RGBA) {
+	number, _ := strconv.Atoi(name)
 	sprite := g.loadTankSprite(number)
-	colorMask := &pixel.RGBA{1, 1, 1, 1}
-	if number/2 == 1 {
-		colorMask = &pixel.RGBA{0.5, 0.4, 0.2, 1}
-	}
+	colorMask := &pixel.RGBA{
+		R: float64(number%1000) / 1000, G: float64(number%100) / 100,
+		B: float64(number%10) / 10, A: 1}
 	return sprite, colorMask
 }
 
-func (g *game) loadTank(number byte) (t *tank) {
-	sprite, colorMask := g.getTankVisuals(number)
+func (g *game) loadTank(number byte, name string) (t *tank) {
+	sprite, colorMask := g.getTankVisuals(name)
 
 	size := [2]int64{int64(sprite.Frame().Max.X-sprite.Frame().Min.X) / 2,
 		int64(sprite.Frame().Max.Y-sprite.Frame().Min.Y) / 2}

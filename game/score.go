@@ -41,13 +41,13 @@ func (g *game) drawScore() {
 	g.score.canvas.Draw(g.window, mat)
 	d := pixel.V(0, -43)
 	move := moveText.Add(g.window.Bounds().Center())
-	for i, player := range g.players {
+	for _, player := range g.players {
 		if player == nil {
 			continue
 		}
 		move = move.Add(d)
 		txt.Dot.X += 40
-		sprite, color := g.getTankVisuals(byte(i))
+		sprite, color := g.getTankVisuals(player.name)
 		sprite.DrawColorMask(g.window, pixel.IM.Moved(move), color)
 		fmt.Fprintln(txt, player.score)
 	}

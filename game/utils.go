@@ -71,7 +71,7 @@ func loadSprites(spritesPath string) *sprites {
 	}
 }
 
-func (g *game) loadTankSprite(number byte) *pixel.Sprite {
+func (g *game) loadTankSprite(number int) *pixel.Sprite {
 	if number%2 == 0 {
 		return pixel.NewSprite(g.sprites.sheet, pixel.R(0, 99, 13, 112))
 	}
