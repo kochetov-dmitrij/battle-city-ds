@@ -81,11 +81,13 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	}
 
 	i := 0
-	lastNil := -1
+	firstNil := -1
 	fmt.Println("Peer ", g.port, ". Receiving message from ", msg.GetHost())
 	for ; i < maxPlayers; i++ {
 		if g.players[i] == nil {
-			lastNil = i
+			if firstNil == -1 {
+				firstNil = i
+			}
 			continue
 		}
 		if g.players[i].name == msg.GetHost() {
@@ -94,11 +96,17 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	}
 	fmt.Println("Peer ", g.port, ". Trying to work with ", msg.GetHost())
 	if i == maxPlayers || g.players[i] == nil || g.players[i].name != msg.GetHost() {
-		if lastNil != -1 {
+		if firstNil != -1 {
 			fmt.Println("Peer ", g.port, ". Adding new player  ", msg.GetHost())
-			g.players[lastNil] = g.loadPlayer(msg.GetHost(), false)
+			g.players[firstNil] = g.loadPlayer(msg.GetHost(), false)
 			fmt.Println("Peer ", g.port, ". Added new player  ", msg.GetHost())
-			i = lastNil
+			i = firstNil
+
+			for i := range g.world.worldMap {
+				for j := range g.world.worldMap[i] {
+					g.world.worldMap[i][j] = msg.LevelState[i][j]
+				}
+			}
 		}
 	}
 
@@ -117,15 +125,6 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	positionB := msg.GetBulletPosition()
 	x, y := int64(positionB.X), int64(positionB.Y)
 	g.players[i].tank.bullet = g.loadBullet(x, y, direction, state)
-
-	// todo sync destruction
-	//for i := range g.world.worldMap {
-	//	for j := range g.world.worldMap[i] {
-	//		if msg.LevelState[i][j] == 46 && g.world.worldMap[i][j] != 46 {
-	//			g.world.worldMap[i][j] = 46
-	//		}
-	//	}
-	//}
 
 	return &empty.Empty{}, nil
 }
@@ -149,43 +148,6 @@ func (g *game) Run() {
 	g.LoadMap(0)
 
 	for !g.window.Closed() {
-		message := &pb.Message{
-			Host:          localPlayer.name,
-			TankPosition:  &pb.Message_Position{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
-			TankState:     uint32(localPlayer.tank.state),
-			TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1),
-			BulletState:   uint32(removed),
-			AllPeers:      append(g.peers.GetList(), g.address),
-			LevelState:    g.world.worldMap,
-		}
-		if localPlayer.tank.bullet != nil {
-			x, y := localPlayer.tank.bullet.x, localPlayer.tank.bullet.y
-			message.BulletDirection = pb.Message_Direction(localPlayer.tank.bullet.direction + 1)
-			message.BulletPosition = &pb.Message_Position{X: uint32(x), Y: uint32(y)}
-			message.BulletState = uint32(localPlayer.tank.bullet.state)
-		}
-
-		for peerAddress, client := range g.peers {
-			fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
-			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*500)
-			fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
-
-			// This calls AddMessage() of all other peers and passes pb.Message
-			_, err := client.AddMessage(ctx, message)
-			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
-				fmt.Println("Peer ", g.port, ". Wow an ERROR while sending info to ", peerAddress)
-				port := regexp.MustCompile("http:.*:(.*)").FindStringSubmatch(peerAddress)[1]
-				for i := 0; i < maxPlayers; i++ {
-					if g.players[i] != nil && g.players[i].name == port {
-						g.players[i] = nil
-						break
-					}
-				}
-				g.peers.Remove(peerAddress)
-				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
-			}
-		}
-
 		moves = false
 		if g.window.Pressed(pixelgl.KeyA) {
 			direction = left
@@ -220,6 +182,45 @@ func (g *game) Run() {
 		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
 		g.drawScore()
 		g.window.Update()
+
+
+		message := &pb.Message{
+			Host:          localPlayer.name,
+			TankPosition:  &pb.Message_Position{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
+			TankState:     uint32(localPlayer.tank.state),
+			TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1),
+			BulletState:   uint32(removed),
+			AllPeers:      append(g.peers.GetList(), g.address),
+			LevelState:    g.world.worldMap,
+		}
+
+		if localPlayer.tank.bullet != nil {
+			x, y := localPlayer.tank.bullet.x, localPlayer.tank.bullet.y
+			message.BulletDirection = pb.Message_Direction(localPlayer.tank.bullet.direction + 1)
+			message.BulletPosition = &pb.Message_Position{X: uint32(x), Y: uint32(y)}
+			message.BulletState = uint32(localPlayer.tank.bullet.state)
+		}
+
+		for peerAddress, client := range g.peers {
+			fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
+			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*500)
+			fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
+
+			// This calls AddMessage() of all other peers and passes pb.Message
+			_, err := client.AddMessage(ctx, message)
+			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+				fmt.Println("Peer ", g.port, ". Wow an ERROR while sending info to ", peerAddress)
+				port := regexp.MustCompile("http:.*:(.*)").FindStringSubmatch(peerAddress)[1]
+				for i := 0; i < maxPlayers; i++ {
+					if g.players[i] != nil && g.players[i].name == port {
+						g.players[i] = nil
+						break
+					}
+				}
+				g.peers.Remove(peerAddress)
+				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
+			}
+		}
 		<-fpsSync
 	}
 }
