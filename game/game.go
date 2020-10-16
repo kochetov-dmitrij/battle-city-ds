@@ -16,13 +16,15 @@ type game struct {
 	titleSize int
 	window    *pixelgl.Window
 	canvas    *pixelgl.Canvas
+	score     *score
 	levels    [][26][26]byte
 	world     *world
 	players   [4]*player
 }
 
 const (
-	gameW = 240
+	// gameW = 240
+	gameW = 250
 	gameH = 208
 )
 
@@ -51,6 +53,7 @@ func NewGame(assetsPath string) (g *game) {
 		levels:    levels,
 		world:     &world{},
 		players:   [4]*player{nil, nil, nil, nil},
+		score:     g.initScore(assetsPath),
 	}
 	return g
 }
@@ -89,7 +92,7 @@ func (g *game) Run() {
 		if g.window.JustPressed(pixelgl.KeyF) {
 			localPlayer.tank.fire(g)
 			for _, player := range g.players {
-				if player != localPlayer {
+				if player != localPlayer && player != nil {
 					player.tank.fire(g)
 				}
 			}
@@ -108,7 +111,9 @@ func (g *game) Run() {
 
 		// last := time.Since(last).Milliseconds()
 		for _, player := range g.players {
-			g.updatePlayer(player, direction, moves)
+			if player != nil {
+				g.updatePlayer(player, direction, moves)
+			}
 		}
 		// g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
 
@@ -118,8 +123,8 @@ func (g *game) Run() {
 		// g.sprites.tiles[tileWater].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(3)))
 		// g.sprites.tiles[tileFroze].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(4)))
 		// g.sprites.tiles[tileGrass].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(5)))
-
 		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
+		g.drawScore()
 		g.window.Update()
 		<-fpsSync
 	}

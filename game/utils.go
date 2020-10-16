@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"image"
 	_ "image/gif"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/faiface/pixel"
+	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
 )
 
 type sprites struct {
@@ -19,6 +22,7 @@ type sprites struct {
 	explosions            []*pixel.Sprite
 	spawns                []*pixel.Sprite
 	tiles                 map[byte]*pixel.Sprite
+	sheet                 *pixel.PictureData
 }
 
 func loadSprites(spritesPath string) *sprites {
@@ -63,7 +67,15 @@ func loadSprites(spritesPath string) *sprites {
 			pixel.NewSprite(spriteSheet, pixel.R(32, 48, 48, 64)),
 			pixel.NewSprite(spriteSheet, pixel.R(48, 48, 64, 64)),
 		},
+		sheet: spriteSheet,
 	}
+}
+
+func (g *game) loadTankSprite(number byte) *pixel.Sprite {
+	if number%2 == 0 {
+		return pixel.NewSprite(g.sprites.sheet, pixel.R(0, 99, 13, 112))
+	}
+	return pixel.NewSprite(g.sprites.sheet, pixel.R(16, 99, 29, 112))
 }
 
 func loadLevels(levelsPath string) [][26][26]byte {
@@ -99,6 +111,29 @@ func loadLevel(levelPath string) [26][26]byte {
 		reader.ReadByte()
 	}
 	return level
+}
+
+func loadTTF(path string, size float64) (font.Face, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	font, err := truetype.Parse(bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return truetype.NewFace(font, &truetype.Options{
+		Size:              size,
+		GlyphCacheEntries: 1,
+	}), nil
 }
 
 func rectContains(r1 pixel.Rect, r2 pixel.Rect) bool {

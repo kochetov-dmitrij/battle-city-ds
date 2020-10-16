@@ -64,6 +64,9 @@ func (b *bullet) checkTankDestroyed(g *game, playerTank *tank) bool {
 	bulletRect := bulletSpriteRect.Moved(bulletV)
 
 	for _, player := range g.players {
+		if player == nil {
+			continue
+		}
 		t := player.tank
 		if t == playerTank {
 			continue
