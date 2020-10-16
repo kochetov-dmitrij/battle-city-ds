@@ -1,5 +1,7 @@
 package game
 
+import	"math/rand"
+
 type player struct {
 	name   string
 	score  byte
@@ -7,9 +9,12 @@ type player struct {
 	number byte
 }
 
-func (g *game) loadPlayer(name string) *player {
+func (g *game) loadPlayer(name string, first bool) *player {
 	i := byte(0)
-	for ; g.players[i] != nil && i < 3; i++ {
+	if first == true {
+		i = byte(rand.Int31n(maxPlayers))
+	}
+	for ; g.players[i] != nil && i < maxPlayers - 1; i++ {
 	}
 
 	t := g.loadTank(i)

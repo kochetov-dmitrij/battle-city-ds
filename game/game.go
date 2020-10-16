@@ -3,12 +3,13 @@ package game
 import (
 	"context"
 	_ "image/gif"
+	"fmt"
 	"log"
 	"math/rand"
 	"path/filepath"
 	"strconv"
 	"time"
-
+	"regexp"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection/pb"
@@ -28,16 +29,18 @@ type game struct {
 	world     *world
 	players   [4]*player
 	peers     connection.Peers
+	port	  string
 }
 
 const (
-	// gameW = 240
 	gameW = 250
 	gameH = 208
+	maxPlayers = 4
 )
 
 func NewGame(assetsPath string) (g *game) {
 	peers := connection.Peers{}
+	rand.Seed(time.Now().UTC().UnixNano())
 	myPort := strconv.Itoa(rand.Intn(13000-12000) + 12000)
 	go connection.Connection(peers, myPort, &pb.ComsService{AddMessage: g.AddMessage})
 
@@ -67,13 +70,50 @@ func NewGame(assetsPath string) (g *game) {
 		players:   [4]*player{nil, nil, nil, nil},
 		score:     g.initScore(assetsPath),
 		peers:     peers,
+		port:	   myPort,
 	}
 	return g
 }
 
 func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, error) {
-	//todo This function is called by other peers to change the state of THIS peer
-	//log.Printf("<<<--- received - %s", msg.BulletDirection)
+	i := 0
+	lastNil := -1
+	fmt.Println("Peer ", g.port, ". Receiving message from ", msg.GetHost())
+	for ; i < maxPlayers; i++ {
+		if g.players[i] == nil {
+			lastNil = i
+			continue
+		} 
+		if g.players[i].name == msg.GetHost() {
+			break
+		}
+	}
+	fmt.Println("Peer ", g.port, ". Trying to work with ", msg.GetHost())
+	if g.players[i] == nil || g.players[i].name != msg.GetHost() {
+		if lastNil != -1 {
+			fmt.Println("Peer ", g.port, ". Adding new player  ", msg.GetHost())
+			g.players[lastNil] = g.loadPlayer(msg.GetHost(), false)
+			fmt.Println("Peer ", g.port, ". Added new player  ", msg.GetHost())
+		}
+	}
+
+	g.players[i].tank.state = State(msg.GetTankState())
+	positionT := msg.GetTankPosition()
+	g.players[i].tank.x = int64(positionT.X)
+	g.players[i].tank.y = int64(positionT.Y)
+	g.players[i].tank.direction = Direction(msg.GetAction()[0].TankDirection - 1)
+	if msg.GetBulletState() == removed  {
+		return &empty.Empty{}, nil
+	}
+	bullet := &bullet{}
+	if g.players[i].tank != nil {
+		bullet = g.players[i].tank.bullet
+	}
+	bullet.state = State(msg.GetBulletState())
+	bullet.direction = Direction(msg.GetBulletDirection() - 1)
+	positionB := msg.GetBulletPosition()
+	bullet.x, bullet.y = int64(positionB.X), int64(positionB.Y)
+
 	return &empty.Empty{}, nil
 }
 
@@ -84,25 +124,39 @@ func (g *game) Run() {
 
 	direction := up
 	moves := false
-	localPlayer := g.loadPlayer("default")
+	localPlayer := g.loadPlayer(g.port, true)
 	g.world.worldMap = g.levels[0] // TODO change to loading from menu
-	for i := 1; i < 4; i++ {
-		g.loadPlayer(string(i))
-	}
 
 	for !g.window.Closed() {
 		message := &pb.Message{
 			Host:         localPlayer.name,
 			TankPosition: &pb.Message_TankPosition{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
+			TankState: 	  uint32(localPlayer.tank.state),
+			// Action:		  []*pb.Message_Action { &pb.Message_Action {TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1)}},
+			BulletState:  uint32(removed),
 			//todo This calls AddMessage() of all other peers and passes pb.Message
-			// BulletPosition: &Message_BulletPosition{X: }
-			BulletDirection: pb.Message_RIGHT,
+		}
+		if localPlayer.tank.bullet != nil {
+			x, y := localPlayer.tank.bullet.x, localPlayer.tank.bullet.y
+			message.BulletDirection = pb.Message_Direction(localPlayer.tank.bullet.direction + 1)
+			message.BulletPosition  = &pb.Message_BulletPosition {X: uint32(x), Y: uint32(y)}
+			message.BulletState = uint32(localPlayer.tank.bullet.state)
 		}
 
 		for peerAddress, client := range g.peers {
+			fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
 			ctx, _ := context.WithTimeout(context.Background(), time.Second)
+			fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
 			_, err := client.AddMessage(ctx, message)
 			if err != nil {
+				fmt.Println("Peer ", g.port, ". Wow an ERROR while sending info to ", peerAddress)
+				port := regexp.MustCompile("http:.*:(.*)").FindStringSubmatch(peerAddress)[1]
+				for i := 0; i < maxPlayers; i++ {
+					if g.players[i] != nil && g.players[i].name == port {
+						g.players[i] = nil
+						break
+					}	
+				}
 				delete(g.peers, peerAddress)
 				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
 			}
@@ -127,15 +181,6 @@ func (g *game) Run() {
 		}
 		if g.window.JustPressed(pixelgl.KeyF) {
 			localPlayer.tank.fire(g)
-			for _, player := range g.players {
-				if player != localPlayer && player != nil {
-					player.tank.fire(g)
-				}
-			}
-		}
-		if g.window.Pressed(pixelgl.KeyS) {
-			direction = down
-			moves = true
 		}
 		// if g.window.JustPressed(pixelgl.KeySpace) {
 		// 	playerTank.fire()
@@ -144,21 +189,13 @@ func (g *game) Run() {
 		g.window.Clear(colornames.White)
 		g.canvas.Clear(colornames.Black)
 		g.draw()
-
-		// last := time.Since(last).Milliseconds()
-		for _, player := range g.players {
-			if player != nil {
-				g.updatePlayer(player, direction, moves)
+		g.updatePlayer(localPlayer, direction, moves)
+		for i := 0; i < maxPlayers; i++ {
+			if g.players[i] != nil && g.players[i] != localPlayer {
+				g.updatePlayer(g.players[i], g.players[i].tank.direction, false)
 			}
 		}
-		// g.sprites.arrows[1].Draw(g.canvas, pixel.IM.Moved(g.sprites.arrows[1].Frame().Size().Scaled(0.5)))
 
-		// g.sprites.tiles[tileEmpty].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(0.5)))
-		// g.sprites.tiles[tileBrick].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(1)))
-		// g.sprites.tiles[tileSteel].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(2)))
-		// g.sprites.tiles[tileWater].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(3)))
-		// g.sprites.tiles[tileFroze].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(4)))
-		// g.sprites.tiles[tileGrass].Draw(g.canvas, pixel.IM.Moved(g.sprites.tiles[tileEmpty].Frame().Size().Scaled(5)))
 		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
 		g.drawScore()
 		g.window.Update()

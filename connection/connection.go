@@ -7,7 +7,6 @@ import (
 	"github.com/koron/go-ssdp"
 	"google.golang.org/grpc"
 	"log"
-	"math/rand"
 	"net"
 	"reflect"
 	"regexp"
@@ -97,8 +96,6 @@ func logConnectedPeers(peers Peers) {
 }
 
 func Connection(peers Peers, myPort string, comsService *pb.ComsService) {
-	rand.Seed(time.Now().UTC().UnixNano())
-
 	connectorP2P := &connectorP2P{
 		myAddress: fmt.Sprintf("http://%s:%s", getMyIP().String(), myPort),
 		usn:       "game:battle-city-ds",
