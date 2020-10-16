@@ -115,16 +115,24 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 		}
 	}
 
-	g.players[i].score = byte(msg.GetScore())
+	scores := msg.GetScore()
 
-	if g.players[i].score == maxScore {
-		for _, player := range g.players {
-		  if player != nil {
-			g.lastWinner = player.name
-			g.resetMap()
-		  }
+	for _, player := range g.players {
+		if 	player == nil {
+			continue
 		}
-	  }
+		for name, score := range scores {
+			if player.name == name && byte(score) > player.score {
+				if score >= maxScore {
+					g.lastWinner = player.name
+					g.resetMap()
+					return &empty.Empty{}, nil		
+				}
+				player.score = byte(score)
+			}
+		} 
+
+	}
 
 	g.players[i].tank.state = State(msg.GetTankState())
 	positionT := msg.GetTankPosition()
@@ -199,6 +207,14 @@ func (g *game) Run() {
 		g.drawScore()
 		g.window.Update()
 
+
+		scores := map[string]uint32 {}
+		for _, player := range g.players {
+			if player != nil {
+				scores[player.name] = uint32(player.score)
+			}
+		}
+
 		message := &pb.Message{
 			Host:          localPlayer.name,
 			TankPosition:  &pb.Message_Position{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
@@ -207,7 +223,7 @@ func (g *game) Run() {
 			BulletState:   uint32(removed),
 			AllPeers:      append(g.peers.GetList(), g.address),
 			LevelState:    g.world.worldMap,
-			Score:		   uint32(localPlayer.score),
+			Score:		   scores,
 		}
 
 		if localPlayer.tank.bullet != nil {

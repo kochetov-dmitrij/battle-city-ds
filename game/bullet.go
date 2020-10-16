@@ -214,13 +214,7 @@ func (t *tank) updateBullet(g *game) {
 		b.moveBullet(g, t)
 	}
 
-	if explodingS <= b.state && b.state <= explodingB {
-		b.checkBlockingTile(g)
-	}
-
-	if b.state == removed {
-		b.checkTankDestroyed(g, t)
-	}
+	b.checkTankDestroyed(g, t)
 
 	switch b.state {
 	case explodingS:
