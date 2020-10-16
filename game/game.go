@@ -91,11 +91,12 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 		}
 	}
 	fmt.Println("Peer ", g.port, ". Trying to work with ", msg.GetHost())
-	if g.players[i] == nil || g.players[i].name != msg.GetHost() {
+	if i == maxPlayers || g.players[i] == nil || g.players[i].name != msg.GetHost() {
 		if lastNil != -1 {
 			fmt.Println("Peer ", g.port, ". Adding new player  ", msg.GetHost())
 			g.players[lastNil] = g.loadPlayer(msg.GetHost(), false)
 			fmt.Println("Peer ", g.port, ". Added new player  ", msg.GetHost())
+			i = lastNil
 		}
 	}
 
@@ -105,17 +106,15 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	g.players[i].tank.y = int64(positionT.Y)
 	g.players[i].tank.direction = Direction(msg.GetAction()[0].TankDirection - 1)
 	if msg.GetBulletState() == removed {
+		g.players[i].tank.bullet = nil
 		return &empty.Empty{}, nil
 	}
-	bullet := &bullet{}
-	if g.players[i].tank != nil {
-		bullet = g.players[i].tank.bullet
-	}
-	bullet.state = State(msg.GetBulletState())
-	bullet.direction = Direction(msg.GetBulletDirection() - 1)
-	positionB := msg.GetBulletPosition()
-	bullet.x, bullet.y = int64(positionB.X), int64(positionB.Y)
 
+	state := State(msg.GetBulletState())
+	direction := Direction(msg.GetBulletDirection() - 1)
+	positionB := msg.GetBulletPosition()
+	x, y := int64(positionB.X), int64(positionB.Y)
+	g.players[i].tank.bullet = g.loadBullet(x, y, direction, state)
 	return &empty.Empty{}, nil
 }
 
@@ -134,8 +133,8 @@ func (g *game) Run() {
 			Host:         localPlayer.name,
 			TankPosition: &pb.Message_TankPosition{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
 			TankState:    uint32(localPlayer.tank.state),
-			// Action:		  []*pb.Message_Action { &pb.Message_Action {TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1)}},
-			BulletState: uint32(removed),
+			Action:		  []*pb.Message_Action { &pb.Message_Action {TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1)}},
+			BulletState:  uint32(removed),
 			//todo This calls AddMessage() of all other peers and passes pb.Message
 		}
 		if localPlayer.tank.bullet != nil {
@@ -184,9 +183,6 @@ func (g *game) Run() {
 		if g.window.JustPressed(pixelgl.KeyF) {
 			localPlayer.tank.fire(g)
 		}
-		// if g.window.JustPressed(pixelgl.KeySpace) {
-		// 	playerTank.fire()
-		// }
 
 		g.window.Clear(colornames.White)
 		g.canvas.Clear(colornames.Black)

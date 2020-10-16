@@ -56,7 +56,6 @@ func (g *game) getSpawnPosition(number byte) (int64, int64) {
 }
 
 func (g *game) getTankVisuals(number byte) (*pixel.Sprite, *pixel.RGBA) {
-	// sprite := g.sprites.players[number%2]
 	sprite := g.loadTankSprite(number)
 	colorMask := &pixel.RGBA{1, 1, 1, 1}
 	if number/2 == 1 {

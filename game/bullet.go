@@ -7,6 +7,11 @@ import (
 	"github.com/faiface/pixel"
 )
 
+const (
+	bulletSizeX = int64(1)
+	bulletSizeY = int64(2)
+)
+
 type bullet struct {
 	sprite    pixel.Sprite
 	direction Direction
@@ -14,6 +19,19 @@ type bullet struct {
 	size      [2]int64
 	state     State
 }
+
+func (g *game) loadBullet(x int64, y int64, direction Direction, state State) *bullet {
+	sprite := g.sprites.bullet
+	b := &bullet{
+		sprite:    *sprite,
+		direction: direction,
+		x:         x,
+		y:         y,
+		size:      [2]int64{bulletSizeX, bulletSizeY},
+		state:     state,
+	}
+	return b
+} 
 
 func (t *tank) fire(g *game) {
 	if t.bullet != nil {
@@ -30,18 +48,7 @@ func (t *tank) fire(g *game) {
 	case down:
 		y -= 5
 	}
-	sprite := g.sprites.bullet
-	size := [2]int64{int64(sprite.Frame().Max.X-sprite.Frame().Min.X) / 2,
-		int64(sprite.Frame().Max.Y-sprite.Frame().Min.Y) / 2}
-	b := &bullet{
-		sprite:    *sprite,
-		direction: t.direction,
-		x:         x,
-		y:         y,
-		size:      size,
-		state:     active,
-	}
-	t.bullet = b
+	t.bullet = g.loadBullet(x, y, t.direction, active)
 }
 
 func (b *bullet) draw(target pixel.Target) {
@@ -96,7 +103,6 @@ func (b *bullet) checkTankDestroyed(g *game, playerTank *tank) bool {
 		t.state = explodingS + 1
 		t.bullet = nil
 		g.incrementScore(g.players[playerTank.number])
-		fmt.Println(g.players[playerTank.number].score)
 		return true
 	}
 	return false
