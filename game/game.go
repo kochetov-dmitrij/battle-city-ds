@@ -1,7 +1,12 @@
 package game
 
 import (
+	"context"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/kochetov-dmitrij/battle-city-ds/connection"
+	"github.com/kochetov-dmitrij/battle-city-ds/connection/pb"
 	_ "image/gif"
+	"log"
 	"math/rand"
 	"path/filepath"
 	"time"
@@ -29,6 +34,9 @@ const (
 )
 
 func NewGame(assetsPath string) (g *game) {
+	peers := connection.Peers{}
+	go connection.Connection(peers, &pb.ComsService{AddMessage: g.AddMessage})
+
 	sprites := loadSprites(filepath.Join(assetsPath, "sprites"))
 	levels := loadLevels(filepath.Join(assetsPath, "levels"))
 
@@ -56,6 +64,11 @@ func NewGame(assetsPath string) (g *game) {
 		score:     g.initScore(assetsPath),
 	}
 	return g
+}
+
+func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, error) {
+	log.Printf("<<<--- received - %s", msg.BulletDirection)
+	return &empty.Empty{}, nil
 }
 
 func (g *game) Run() {

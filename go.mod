@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/faiface/pixel v0.10.0
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/golang/protobuf v1.4.1
 	github.com/huin/goupnp v1.0.0
 	github.com/koron/go-ssdp v0.0.2

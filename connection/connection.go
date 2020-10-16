@@ -3,7 +3,6 @@ package connection
 import (
 	"context"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/huin/goupnp"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection/pb"
 	"github.com/koron/go-ssdp"
@@ -88,11 +87,12 @@ func (c *connectorP2P) discover() {
 	}
 }
 
-func startGRPCServer(port string) {
+func startGRPCServer(port string, comsService *pb.ComsService) {
 	lis, _ := net.Listen("tcp", ":"+port)
 	server := grpc.NewServer()
 	log.Printf("Launched a gRPC server on port %s", port)
-	pb.RegisterComsService(server, &pb.ComsService{AddMessage: AddMessage})
+	pb.RegisterComsService(server, comsService)
+	//pb.RegisterComsService(server, &pb.ComsService{AddMessage: AddMessage})
 	go func() {
 		if err := server.Serve(lis); err != nil {
 			log.Fatalf("Failed to serve: %v", err)
@@ -100,7 +100,7 @@ func startGRPCServer(port string) {
 	}()
 }
 
-func Connection(peers Peers) {
+func Connection(peers Peers, comsService *pb.ComsService) {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	myPort := strconv.Itoa(rand.Intn(13000-12000) + 12000)
@@ -111,12 +111,7 @@ func Connection(peers Peers) {
 	}
 	fmt.Printf("My connection details: %+v\n", *connectorP2P)
 
-	startGRPCServer(myPort)
+	startGRPCServer(myPort, comsService)
 	go connectorP2P.discover()
 	connectorP2P.advertise()
-}
-
-func AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, error) {
-	log.Printf("<<<--- received - %s", msg.BulletDirection)
-	return &empty.Empty{}, nil
 }
