@@ -51,6 +51,20 @@ type tank struct {
 	name      string
 }
 
+func (g *game) resetMap() {
+	g.LoadMap(defaultLevel)
+	for i, player := range g.players {
+		if player == nil {
+			continue
+		}
+		player.score = 0
+		player.tank.bullet = nil
+		player.tank.state = spawning
+		player.tank.x, player.tank.y = g.getSpawnPosition(byte(i))
+	}
+}
+
+
 func (g *game) getSpawnPosition(number byte) (int64, int64) {
 	coordinates := []int64{tankSize - 4, gameH - tankSize + 4}
 	x, y := coordinates[number%2], coordinates[number/2]

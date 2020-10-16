@@ -31,12 +31,15 @@ type game struct {
 	peers     connection.Peers
 	port      string
 	address   string
+	lastWinner string
 }
 
 const (
 	gameW      = 250
 	gameH      = 208
 	maxPlayers = 4
+	maxScore   = 10
+	defaultLevel = 0
 )
 
 func NewGame(assetsPath string) (g *game) {
@@ -113,6 +116,16 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	}
 
 	g.players[i].score = byte(msg.GetScore())
+
+	if g.players[i].score == maxScore {
+		for _, player := range g.players {
+		  if player != nil {
+			g.lastWinner = player.name
+			g.resetMap()
+		  }
+		}
+	  }
+
 	g.players[i].tank.state = State(msg.GetTankState())
 	positionT := msg.GetTankPosition()
 	g.players[i].tank.x = int64(positionT.X)
@@ -148,7 +161,7 @@ func (g *game) Run() {
 	direction := up
 	moves := false
 	localPlayer := g.loadPlayer(g.port, true)
-	g.LoadMap(0)
+	g.LoadMap(defaultLevel)
 
 	for !g.window.Closed() {
 		moves = false
@@ -224,6 +237,11 @@ func (g *game) Run() {
 				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
 			}
 		}
+		if localPlayer.score == maxScore {
+			g.resetMap()
+			g.lastWinner = localPlayer.name
+		}
+
 		<-fpsSync
 	}
 }
