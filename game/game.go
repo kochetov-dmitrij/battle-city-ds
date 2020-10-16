@@ -148,43 +148,6 @@ func (g *game) Run() {
 	g.LoadMap(0)
 
 	for !g.window.Closed() {
-		message := &pb.Message{
-			Host:          localPlayer.name,
-			TankPosition:  &pb.Message_Position{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
-			TankState:     uint32(localPlayer.tank.state),
-			TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1),
-			BulletState:   uint32(removed),
-			AllPeers:      append(g.peers.GetList(), g.address),
-			LevelState:    g.world.worldMap,
-		}
-		if localPlayer.tank.bullet != nil {
-			x, y := localPlayer.tank.bullet.x, localPlayer.tank.bullet.y
-			message.BulletDirection = pb.Message_Direction(localPlayer.tank.bullet.direction + 1)
-			message.BulletPosition = &pb.Message_Position{X: uint32(x), Y: uint32(y)}
-			message.BulletState = uint32(localPlayer.tank.bullet.state)
-		}
-
-		for peerAddress, client := range g.peers {
-			fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
-			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*500)
-			fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
-
-			// This calls AddMessage() of all other peers and passes pb.Message
-			_, err := client.AddMessage(ctx, message)
-			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
-				fmt.Println("Peer ", g.port, ". Wow an ERROR while sending info to ", peerAddress)
-				port := regexp.MustCompile("http:.*:(.*)").FindStringSubmatch(peerAddress)[1]
-				for i := 0; i < maxPlayers; i++ {
-					if g.players[i] != nil && g.players[i].name == port {
-						g.players[i] = nil
-						break
-					}
-				}
-				g.peers.Remove(peerAddress)
-				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
-			}
-		}
-
 		moves = false
 		if g.window.Pressed(pixelgl.KeyA) {
 			direction = left
@@ -219,6 +182,45 @@ func (g *game) Run() {
 		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
 		g.drawScore()
 		g.window.Update()
+
+		
+		message := &pb.Message{
+			Host:          localPlayer.name,
+			TankPosition:  &pb.Message_Position{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
+			TankState:     uint32(localPlayer.tank.state),
+			TankDirection: pb.Message_Direction(localPlayer.tank.direction + 1),
+			BulletState:   uint32(removed),
+			AllPeers:      append(g.peers.GetList(), g.address),
+			LevelState:    g.world.worldMap,
+		}
+
+		if localPlayer.tank.bullet != nil {
+			x, y := localPlayer.tank.bullet.x, localPlayer.tank.bullet.y
+			message.BulletDirection = pb.Message_Direction(localPlayer.tank.bullet.direction + 1)
+			message.BulletPosition = &pb.Message_Position{X: uint32(x), Y: uint32(y)}
+			message.BulletState = uint32(localPlayer.tank.bullet.state)
+		}
+
+		for peerAddress, client := range g.peers {
+			fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
+			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*500)
+			fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
+
+			// This calls AddMessage() of all other peers and passes pb.Message
+			_, err := client.AddMessage(ctx, message)
+			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+				fmt.Println("Peer ", g.port, ". Wow an ERROR while sending info to ", peerAddress)
+				port := regexp.MustCompile("http:.*:(.*)").FindStringSubmatch(peerAddress)[1]
+				for i := 0; i < maxPlayers; i++ {
+					if g.players[i] != nil && g.players[i].name == port {
+						g.players[i] = nil
+						break
+					}
+				}
+				g.peers.Remove(peerAddress)
+				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
+			}
+		}
 		<-fpsSync
 	}
 }

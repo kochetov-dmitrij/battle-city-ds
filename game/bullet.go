@@ -209,11 +209,13 @@ func (t *tank) updateBullet(g *game) {
 	if b.state == active {
 		b.moveBullet(g, t)
 	}
+
 	switch b.state {
 	case explodingS:
 		b.state = explodingM
 		b.sprite = *g.sprites.explosions[0]
 	case explodingM:
+		b.checkBlockingTile(g)
 		t.bullet = nil
 		b.sprite = *g.sprites.explosions[1]
 	case removed:
