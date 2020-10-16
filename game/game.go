@@ -25,6 +25,7 @@ type game struct {
 	levels    [][26][26]byte
 	world     *world
 	players   [4]*player
+	peers     connection.Peers
 }
 
 const (
@@ -62,12 +63,14 @@ func NewGame(assetsPath string) (g *game) {
 		world:     &world{},
 		players:   [4]*player{nil, nil, nil, nil},
 		score:     g.initScore(assetsPath),
+		peers:     peers,
 	}
 	return g
 }
 
 func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, error) {
-	log.Printf("<<<--- received - %s", msg.BulletDirection)
+	//todo This function is called by other peers to change the state of THIS peer
+	//log.Printf("<<<--- received - %s", msg.BulletDirection)
 	return &empty.Empty{}, nil
 }
 
@@ -85,6 +88,19 @@ func (g *game) Run() {
 	}
 
 	for !g.window.Closed() {
+
+		for peerAddress, client := range g.peers {
+			ctx, _ := context.WithTimeout(context.Background(), time.Second)
+			_, err := client.AddMessage(ctx, &pb.Message{
+				//todo This calls AddMessage() of all other peers and passes pb.Message
+				BulletDirection: pb.Message_RIGHT,
+			})
+			if err != nil {
+				delete(g.peers, peerAddress)
+				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
+			}
+		}
+
 		moves = false
 		if g.window.Pressed(pixelgl.KeyA) {
 			direction = left

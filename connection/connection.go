@@ -1,7 +1,6 @@
 package connection
 
 import (
-	"context"
 	"fmt"
 	"github.com/huin/goupnp"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection/pb"
@@ -10,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"reflect"
 	"regexp"
 	"strconv"
 	"time"
@@ -75,15 +75,6 @@ func (c *connectorP2P) discover() {
 				}
 			}
 		}
-		log.Printf("Found peers: %v", c.peers)
-		for peerAddress, client := range c.peers {
-			ctx, _ := context.WithTimeout(context.Background(), time.Second)
-			_, err := client.AddMessage(ctx, &pb.Message{BulletDirection: pb.Message_RIGHT})
-			if err != nil {
-				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
-				delete(c.peers, peerAddress)
-			}
-		}
 	}
 }
 
@@ -100,6 +91,13 @@ func startGRPCServer(port string, comsService *pb.ComsService) {
 	}()
 }
 
+func logConnectedPeers(peers Peers) {
+	for {
+		log.Printf("Connected peers: %v", reflect.ValueOf(peers).MapKeys())
+		time.Sleep(5 * time.Second)
+	}
+}
+
 func Connection(peers Peers, comsService *pb.ComsService) {
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -109,9 +107,10 @@ func Connection(peers Peers, comsService *pb.ComsService) {
 		usn:       "game:battle-city-ds",
 		peers:     peers,
 	}
-	fmt.Printf("My connection details: %+v\n", *connectorP2P)
+	fmt.Printf("My address: %s\n", connectorP2P.myAddress)
 
 	startGRPCServer(myPort, comsService)
+	go logConnectedPeers(connectorP2P.peers)
 	go connectorP2P.discover()
 	connectorP2P.advertise()
 }
