@@ -60,7 +60,7 @@ func NewGame(assetsPath string) (g *game) {
 
 func (g *game) Run() {
 	rand.Seed(time.Now().UnixNano())
-	fps := 20
+	fps := 10
 	fpsSync := time.Tick(time.Second / time.Duration(fps))
 
 	direction := up

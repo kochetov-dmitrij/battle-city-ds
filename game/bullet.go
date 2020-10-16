@@ -160,7 +160,7 @@ func (b *bullet) checkBlockingTile(g *game) {
 }
 
 func (b *bullet) moveBullet(g *game, t *tank) {
-	movedPixels := int64(4)
+	movedPixels := int64(8)
 	if b.direction == right {
 		if b.x+movedPixels >= gameH {
 			b.x = gameH - 1

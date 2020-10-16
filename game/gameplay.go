@@ -241,7 +241,7 @@ func (g *game) updateTank(t *tank, direction Direction, moves bool) {
 		return
 	}
 
-	movedPixels := int64(2)
+	movedPixels := int64(4)
 	t.direction = direction
 	if moves && t.state == active && t.canMove(g, direction, movedPixels) {
 		t.x, t.y = t.getNewPos(direction, movedPixels)
