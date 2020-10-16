@@ -2,14 +2,14 @@ package game
 
 import (
 	"context"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/kochetov-dmitrij/battle-city-ds/connection"
-	"github.com/kochetov-dmitrij/battle-city-ds/connection/pb"
 	_ "image/gif"
-	"log"
 	"math/rand"
 	"path/filepath"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/kochetov-dmitrij/battle-city-ds/connection"
+	"github.com/kochetov-dmitrij/battle-city-ds/connection/pb"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
@@ -88,13 +88,17 @@ func (g *game) Run() {
 	}
 
 	for !g.window.Closed() {
+		message := &pb.Message{
+			Host: localPlayer.name
+			TankPosition: &Message_TankPosition{X: uint32(localPlayer.x), Y: uint32(localPlayer.y)}
+			//todo This calls AddMessage() of all other peers and passes pb.Message
+			// BulletPosition: &Message_BulletPosition{X: }
+			BulletDirection: pb.Message_RIGHT,
+		}
 
 		for peerAddress, client := range g.peers {
 			ctx, _ := context.WithTimeout(context.Background(), time.Second)
-			_, err := client.AddMessage(ctx, &pb.Message{
-				//todo This calls AddMessage() of all other peers and passes pb.Message
-				BulletDirection: pb.Message_RIGHT,
-			})
+			_, err := client.AddMessage(ctx, message)
 			if err != nil {
 				delete(g.peers, peerAddress)
 				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)

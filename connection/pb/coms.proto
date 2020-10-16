@@ -30,13 +30,14 @@ message Message {
     google.protobuf.Timestamp ts = 1;
     Direction tankDirection = 2;
   }
-
-  TankPosition tankPosition = 1;
-  BulletPosition bulletPosition = 2;
-  Direction bulletDirection = 3;
-  repeated Action action = 4;
-  string host = 5;
+  
+  uint32 tankState = 1;
+  TankPosition tankPosition = 2;
+  uint32 bulletState = 3;
+  BulletPosition bulletPosition = 4;
+  Direction bulletDirection = 5;
+  repeated Action action = 6;
+  string host = 7;
 }
 
 // protoc --go_out=connection --go-grpc_out=connection connection/pb/*.proto
-

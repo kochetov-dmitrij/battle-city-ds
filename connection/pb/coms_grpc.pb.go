@@ -29,10 +29,6 @@ func NewComsClient(cc grpc.ClientConnInterface) ComsClient {
 	return &comsClient{cc}
 }
 
-var comsAddMessageStreamDesc = &grpc.StreamDesc{
-	StreamName: "addMessage",
-}
-
 func (c *comsClient) AddMessage(ctx context.Context, in *Message, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/battle_city_ds.Coms/addMessage", in, out, opts...)
@@ -42,51 +38,61 @@ func (c *comsClient) AddMessage(ctx context.Context, in *Message, opts ...grpc.C
 	return out, nil
 }
 
-// ComsService is the service API for Coms service.
-// Fields should be assigned to their respective handler implementations only before
-// RegisterComsService is called.  Any unassigned fields will result in the
-// handler for that method returning an Unimplemented error.
-type ComsService struct {
-	AddMessage func(context.Context, *Message) (*empty.Empty, error)
+// ComsServer is the server API for Coms service.
+// All implementations must embed UnimplementedComsServer
+// for forward compatibility
+type ComsServer interface {
+	AddMessage(context.Context, *Message) (*empty.Empty, error)
+	mustEmbedUnimplementedComsServer()
 }
 
-func (s *ComsService) addMessage(_ interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+// UnimplementedComsServer must be embedded to have forward compatible implementations.
+type UnimplementedComsServer struct {
+}
+
+func (UnimplementedComsServer) AddMessage(context.Context, *Message) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddMessage not implemented")
+}
+func (UnimplementedComsServer) mustEmbedUnimplementedComsServer() {}
+
+// UnsafeComsServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ComsServer will
+// result in compilation errors.
+type UnsafeComsServer interface {
+	mustEmbedUnimplementedComsServer()
+}
+
+func RegisterComsServer(s *grpc.Server, srv ComsServer) {
+	s.RegisterService(&_Coms_serviceDesc, srv)
+}
+
+func _Coms_AddMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Message)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return s.AddMessage(ctx, in)
+		return srv.(ComsServer).AddMessage(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
-		Server:     s,
+		Server:     srv,
 		FullMethod: "/battle_city_ds.Coms/AddMessage",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return s.AddMessage(ctx, req.(*Message))
+		return srv.(ComsServer).AddMessage(ctx, req.(*Message))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// RegisterComsService registers a service implementation with a gRPC server.
-func RegisterComsService(s grpc.ServiceRegistrar, srv *ComsService) {
-	srvCopy := *srv
-	if srvCopy.AddMessage == nil {
-		srvCopy.AddMessage = func(context.Context, *Message) (*empty.Empty, error) {
-			return nil, status.Errorf(codes.Unimplemented, "method AddMessage not implemented")
-		}
-	}
-	sd := grpc.ServiceDesc{
-		ServiceName: "battle_city_ds.Coms",
-		Methods: []grpc.MethodDesc{
-			{
-				MethodName: "addMessage",
-				Handler:    srvCopy.addMessage,
-			},
+var _Coms_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "battle_city_ds.Coms",
+	HandlerType: (*ComsServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "addMessage",
+			Handler:    _Coms_AddMessage_Handler,
 		},
-		Streams:  []grpc.StreamDesc{},
-		Metadata: "connection/pb/coms.proto",
-	}
-
-	s.RegisterService(&sd, nil)
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "connection/pb/coms.proto",
 }
