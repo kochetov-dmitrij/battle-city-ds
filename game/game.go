@@ -118,13 +118,14 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	x, y := int64(positionB.X), int64(positionB.Y)
 	g.players[i].tank.bullet = g.loadBullet(x, y, direction, state)
 
-	for i := range g.world.worldMap {
-		for j := range g.world.worldMap[i] {
-			if msg.LevelState[i][j] == 46 && g.world.worldMap[i][j] != 46 {
-				g.world.worldMap[i][j] = 46
-			}
-		}
-	}
+	// todo sync destruction
+	//for i := range g.world.worldMap {
+	//	for j := range g.world.worldMap[i] {
+	//		if msg.LevelState[i][j] == 46 && g.world.worldMap[i][j] != 46 {
+	//			g.world.worldMap[i][j] = 46
+	//		}
+	//	}
+	//}
 
 	return &empty.Empty{}, nil
 }
