@@ -3,8 +3,10 @@ package game
 import (
 	"context"
 	_ "image/gif"
+	"log"
 	"math/rand"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -36,7 +38,8 @@ const (
 
 func NewGame(assetsPath string) (g *game) {
 	peers := connection.Peers{}
-	go connection.Connection(peers, &pb.ComsService{AddMessage: g.AddMessage})
+	myPort := strconv.Itoa(rand.Intn(13000-12000) + 12000)
+	go connection.Connection(peers, myPort, &pb.ComsService{AddMessage: g.AddMessage})
 
 	sprites := loadSprites(filepath.Join(assetsPath, "sprites"))
 	levels := loadLevels(filepath.Join(assetsPath, "levels"))
@@ -89,8 +92,8 @@ func (g *game) Run() {
 
 	for !g.window.Closed() {
 		message := &pb.Message{
-			Host: localPlayer.name
-			TankPosition: &Message_TankPosition{X: uint32(localPlayer.x), Y: uint32(localPlayer.y)}
+			Host:         localPlayer.name,
+			TankPosition: &pb.Message_TankPosition{X: uint32(localPlayer.tank.x), Y: uint32(localPlayer.tank.y)},
 			//todo This calls AddMessage() of all other peers and passes pb.Message
 			// BulletPosition: &Message_BulletPosition{X: }
 			BulletDirection: pb.Message_RIGHT,

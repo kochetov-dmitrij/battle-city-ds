@@ -11,7 +11,6 @@ import (
 	"net"
 	"reflect"
 	"regexp"
-	"strconv"
 	"time"
 )
 
@@ -83,7 +82,6 @@ func startGRPCServer(port string, comsService *pb.ComsService) {
 	server := grpc.NewServer()
 	log.Printf("Launched a gRPC server on port %s", port)
 	pb.RegisterComsService(server, comsService)
-	//pb.RegisterComsService(server, &pb.ComsService{AddMessage: AddMessage})
 	go func() {
 		if err := server.Serve(lis); err != nil {
 			log.Fatalf("Failed to serve: %v", err)
@@ -98,10 +96,9 @@ func logConnectedPeers(peers Peers) {
 	}
 }
 
-func Connection(peers Peers, comsService *pb.ComsService) {
+func Connection(peers Peers, myPort string, comsService *pb.ComsService) {
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	myPort := strconv.Itoa(rand.Intn(13000-12000) + 12000)
 	connectorP2P := &connectorP2P{
 		myAddress: fmt.Sprintf("http://%s:%s", getMyIP().String(), myPort),
 		usn:       "game:battle-city-ds",
