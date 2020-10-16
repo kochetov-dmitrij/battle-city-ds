@@ -112,6 +112,7 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 		}
 	}
 
+	g.players[i].score = byte(msg.GetScore())
 	g.players[i].tank.state = State(msg.GetTankState())
 	positionT := msg.GetTankPosition()
 	g.players[i].tank.x = int64(positionT.X)
@@ -193,6 +194,7 @@ func (g *game) Run() {
 			BulletState:   uint32(removed),
 			AllPeers:      append(g.peers.GetList(), g.address),
 			LevelState:    g.world.worldMap,
+			Score:		   uint32(localPlayer.score),
 		}
 
 		if localPlayer.tank.bullet != nil {
