@@ -172,47 +172,17 @@ func (g *game) Run() {
 	g.LoadMap(defaultLevel)
 
 	for !g.window.Closed() {
-		moves = false
-		if g.window.Pressed(pixelgl.KeyA) {
-			direction = left
-			moves = true
-		}
-		if g.window.Pressed(pixelgl.KeyD) {
-			direction = right
-			moves = true
-		}
-		if g.window.Pressed(pixelgl.KeyW) {
-			direction = up
-			moves = true
-		}
-		if g.window.Pressed(pixelgl.KeyS) {
-			direction = down
-			moves = true
-		}
-		if g.window.JustPressed(pixelgl.KeyF) {
-			localPlayer.tank.fire(g)
-		}
-
-		g.window.Clear(colornames.White)
-		g.canvas.Clear(colornames.Black)
-		g.draw()
-		g.updatePlayer(localPlayer, direction, moves)
-		for i := 0; i < maxPlayers; i++ {
-			if g.players[i] != nil && g.players[i] != localPlayer {
-				g.updatePlayer(g.players[i], g.players[i].tank.direction, false)
-			}
-		}
-
-		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
-		g.drawScore()
-		g.window.Update()
-
 
 		scores := map[string]uint32 {}
 		for _, player := range g.players {
 			if player != nil {
 				scores[player.name] = uint32(player.score)
 			}
+		}
+
+		if localPlayer.score == maxScore {
+			g.resetMap()
+			g.lastWinner = localPlayer.name
 		}
 
 		message := &pb.Message{
@@ -253,10 +223,41 @@ func (g *game) Run() {
 				log.Printf("Peer %s disconnected | %v\n", peerAddress, err)
 			}
 		}
-		if localPlayer.score == maxScore {
-			g.resetMap()
-			g.lastWinner = localPlayer.name
+
+		moves = false
+		if g.window.Pressed(pixelgl.KeyA) {
+			direction = left
+			moves = true
 		}
+		if g.window.Pressed(pixelgl.KeyD) {
+			direction = right
+			moves = true
+		}
+		if g.window.Pressed(pixelgl.KeyW) {
+			direction = up
+			moves = true
+		}
+		if g.window.Pressed(pixelgl.KeyS) {
+			direction = down
+			moves = true
+		}
+		if g.window.JustPressed(pixelgl.KeyF) {
+			localPlayer.tank.fire(g)
+		}
+
+		g.window.Clear(colornames.White)
+		g.canvas.Clear(colornames.Black)
+		g.draw()
+		g.updatePlayer(localPlayer, direction, moves)
+		for i := 0; i < maxPlayers; i++ {
+			if g.players[i] != nil && g.players[i] != localPlayer {
+				g.updatePlayer(g.players[i], g.players[i].tank.direction, false)
+			}
+		}
+
+		g.canvas.Draw(g.window, pixel.IM.Moved(g.canvas.Bounds().Center()))
+		g.drawScore()
+		g.window.Update()
 
 		<-fpsSync
 	}
