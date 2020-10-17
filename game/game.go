@@ -3,7 +3,6 @@ package game
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection"
 	"github.com/kochetov-dmitrij/battle-city-ds/connection/pb"
@@ -20,25 +19,25 @@ import (
 )
 
 type game struct {
-	sprites   *sprites
-	titleSize int
-	window    *pixelgl.Window
-	canvas    *pixelgl.Canvas
-	score     *score
-	levels    [][][]byte
-	world     *world
-	players   [4]*player
-	peers     connection.Peers
-	port      string
-	address   string
+	sprites    *sprites
+	titleSize  int
+	window     *pixelgl.Window
+	canvas     *pixelgl.Canvas
+	score      *score
+	levels     [][][]byte
+	world      *world
+	players    [4]*player
+	peers      connection.Peers
+	port       string
+	address    string
 	lastWinner string
 }
 
 const (
-	gameW      = 250
-	gameH      = 208
-	maxPlayers = 4
-	maxScore   = 10
+	gameW        = 250
+	gameH        = 208
+	maxPlayers   = 4
+	maxScore     = 10
 	defaultLevel = 0
 )
 
@@ -85,7 +84,7 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 
 	i := 0
 	firstNil := -1
-	fmt.Println("Peer ", g.port, ". Receiving message from ", msg.GetHost())
+	//fmt.Println("Peer ", g.port, ". Receiving message from ", msg.GetHost())
 	for ; i < maxPlayers; i++ {
 		if g.players[i] == nil {
 			if firstNil == -1 {
@@ -97,12 +96,12 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 			break
 		}
 	}
-	fmt.Println("Peer ", g.port, ". Trying to work with ", msg.GetHost())
+	//fmt.Println("Peer ", g.port, ". Trying to work with ", msg.GetHost())
 	if i == maxPlayers || g.players[i] == nil || g.players[i].name != msg.GetHost() {
 		if firstNil != -1 {
-			fmt.Println("Peer ", g.port, ". Adding new player  ", msg.GetHost())
+			//fmt.Println("Peer ", g.port, ". Adding new player  ", msg.GetHost())
 			g.players[firstNil] = g.loadPlayer(msg.GetHost(), false)
-			fmt.Println("Peer ", g.port, ". Added new player  ", msg.GetHost())
+			//fmt.Println("Peer ", g.port, ". Added new player  ", msg.GetHost())
 			i = firstNil
 		}
 	}
@@ -122,19 +121,19 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 	scores := msg.GetScore()
 
 	for _, player := range g.players {
-		if 	player == nil {
+		if player == nil {
 			continue
 		}
 		for name, score := range scores {
-			if player.name == name && byte(score) > player.score {
+			if player.name == name && byte(score) >= player.score {
 				if score >= maxScore {
 					g.lastWinner = player.name
 					g.resetMap()
-					return &empty.Empty{}, nil		
+					return &empty.Empty{}, nil
 				}
 				player.score = byte(score)
 			}
-		} 
+		}
 
 	}
 
@@ -177,7 +176,7 @@ func (g *game) Run() {
 
 	for !g.window.Closed() {
 
-		scores := map[string]uint32 {}
+		scores := map[string]uint32{}
 		for _, player := range g.players {
 			if player != nil {
 				scores[player.name] = uint32(player.score)
@@ -197,7 +196,7 @@ func (g *game) Run() {
 			BulletState:   uint32(removed),
 			AllPeers:      append(g.peers.GetList(), g.address),
 			LevelState:    g.world.worldMap,
-			Score:		   scores,
+			Score:         scores,
 			LastWinner:    g.lastWinner,
 		}
 
@@ -209,14 +208,14 @@ func (g *game) Run() {
 		}
 
 		for peerAddress, client := range g.peers {
-			fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
+			//fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
 			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*500)
-			fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
+			//fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
 
 			// This calls AddMessage() of all other peers and passes pb.Message
 			_, err := client.AddMessage(ctx, message)
 			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
-				fmt.Println("Peer ", g.port, ". Wow an ERROR while sending info to ", peerAddress)
+				//fmt.Println("Peer ", g.port, ". Wow an ERROR while sending info to ", peerAddress)
 				port := regexp.MustCompile("http:.*:(.*)").FindStringSubmatch(peerAddress)[1]
 				for i := 0; i < maxPlayers; i++ {
 					if g.players[i] != nil && g.players[i].name == port {
