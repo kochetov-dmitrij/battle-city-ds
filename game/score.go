@@ -52,4 +52,21 @@ func (g *game) drawScore() {
 		fmt.Fprintln(txt, player.score)
 	}
 	txt.Draw(g.window, pixel.IM.Moved(g.window.Bounds().Center()))
+
+	if g.lastWinner == "" {
+		return 
+	}
+
+	moveText = pixel.V(185, -120)
+	winnerTxt := text.New(moveText, g.score.atlas)
+	winnerTxt.Dot.X += 7
+	fmt.Fprintln(winnerTxt, "Last")
+	winnerTxt.Dot.X -= 2
+	winnerTxt.Dot.Y -= 8
+	fmt.Fprintln(winnerTxt, "winner")
+	move = moveText.Add(g.window.Bounds().Center()).Add(pixel.V(25, -45))
+	sprite, color := g.getTankVisuals(g.lastWinner)
+	sprite.DrawColorMask(g.window, pixel.IM.Moved(move), color)
+	winnerTxt.Draw(g.window, pixel.IM.Moved(g.window.Bounds().Center()))
+	
 }

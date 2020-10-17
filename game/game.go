@@ -74,7 +74,7 @@ func NewGame(assetsPath string) (g *game) {
 	g.port = myPort
 	g.address = myAddress
 	g.score = g.initScore(assetsPath)
-
+	g.lastWinner = ""
 	return g
 }
 
@@ -105,6 +105,10 @@ func (g *game) AddMessage(ctx context.Context, msg *pb.Message) (*empty.Empty, e
 			fmt.Println("Peer ", g.port, ". Added new player  ", msg.GetHost())
 			i = firstNil
 		}
+	}
+
+	if g.lastWinner == "" {
+		g.lastWinner = msg.GetLastWinner()
 	}
 
 	for i := range g.world.worldMap {
@@ -194,6 +198,7 @@ func (g *game) Run() {
 			AllPeers:      append(g.peers.GetList(), g.address),
 			LevelState:    g.world.worldMap,
 			Score:		   scores,
+			LastWinner:    g.lastWinner,
 		}
 
 		if localPlayer.tank.bullet != nil {
