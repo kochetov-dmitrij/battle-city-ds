@@ -209,7 +209,7 @@ func (g *game) Run() {
 
 		for peerAddress, client := range g.peers {
 			//fmt.Println("Peer ", g.port, ". Trying to send info to ", peerAddress)
-			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*500)
+			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
 			//fmt.Println("Peer ", g.port, ". Tried to send info to ", peerAddress)
 
 			// This calls AddMessage() of all other peers and passes pb.Message

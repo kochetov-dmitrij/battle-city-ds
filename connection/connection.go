@@ -58,7 +58,7 @@ type connectorP2P struct {
 func (c *connectorP2P) advertise() {
 	ad, err := ssdp.Advertise(
 		c.usn,
-		c.usn,
+		"",
 		c.myAddress,
 		"",
 		1800)
